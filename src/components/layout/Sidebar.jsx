@@ -14,7 +14,7 @@ const menu = [
     {
         Icon: IoBarChartOutline,
         name: "Trực quan dữ liệu",
-        link: "/"
+        link: "/metric-visualizer"
     },
     {
         Icon: TbAutomation,
