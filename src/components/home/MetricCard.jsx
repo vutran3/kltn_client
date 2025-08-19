@@ -1,3 +1,5 @@
+import { AlertTriangleIcon } from "lucide-react";
+
 function MetricCard({ title, value, unit, warning, large = false }) {
     return (
         <div
@@ -11,7 +13,7 @@ function MetricCard({ title, value, unit, warning, large = false }) {
                     <span className={`text-2xl font-bold ${warning ? "text-red-600" : "text-gray-800"}`}>
                         {value} {unit}
                     </span>
-                    {warning && <AlertTriangle className="w-5 h-5 text-yellow-500" />}
+                    {warning && <AlertTriangleIcon className="w-5 h-5 text-yellow-500" />}
                 </div>
             </div>
         </div>

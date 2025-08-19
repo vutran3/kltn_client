@@ -1,6 +1,6 @@
 import instance from "../config/axios.config";
-export const getDataApi = async (uri, params) => {
-    const res = await instance.get(uri, { params });
+export const getDataApi = async (uri, params, headers) => {
+    const res = await instance.get(uri, { params, headers });
     return res;
 };
 

@@ -146,7 +146,7 @@ const CalendarWeather = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* Enhanced Calendar */}
             <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
                 <div className="flex items-center justify-between mb-6">
