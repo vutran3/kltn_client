@@ -24,7 +24,7 @@ const menu = [
     {
         Icon: TbHeartSearch,
         name: "Kiểm tra nông sản",
-        link: "/"
+        link: "/quality-check"
     },
     {
         Icon: LiaWarehouseSolid,
