@@ -5,6 +5,9 @@ import TimeFilter from "../components/quality_check/TimeFilter";
 import QualityTable from "../components/quality_check/QualityTable";
 import EmptyState from "../components/quality_check/EmptyState";
 import instance from '../config/axios.config'
+import { useDispatch, useSelector } from "react-redux";
+import { fetchHealthResults } from "../redux/thunks/healthCheckThunk";
+import {selectHealthRows, selectHealthLoading, selectHealthPagination, selectHealthError} from '../redux/selector'
 
 const fmtVN = (iso) => {
     if (!iso) return "";
@@ -52,98 +55,41 @@ function mapResults(results, page, limit) {
 
 
 export default function QualityCheck() {
+    const dispatch = useDispatch();
+    const rowsRaw = useSelector(selectHealthRows);
+    const loading = useSelector(selectHealthLoading);
+    const {page, limit, totalPages} = useSelector(selectHealthPagination)
     const [range, setRange] = useState({ from: null, to: null });
-    const [loading, setLoading] = useState(false);
-
-
-    const [rows, setRows] = useState([]);
-    const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(5);
-    const [totalPages, setTotalPages] = useState(1);
-
-    const fetchPage = useCallback(
-        async (p = 1, from = null, to = null) => {
-            setLoading(true);
-            const controller = new AbortController();
-
-            try {
-                const params = { page: p };
-                // nếu backend có hỗ trợ lọc thời gian, truyền kèm ISO
-                if (from) params.from = new Date(from).toISOString();
-                if (to) params.to = new Date(to).toISOString();
-
-                const { data } = await instance.get("/health-check/results", {
-                    params,
-                    signal: controller.signal,
-                    timeout: 30000,
-                    headers: { Accept: "application/json" },
-                });
-
-                const meta = data?.metadata || {};
-                const results = meta?.results || [];
-                const pag = meta?.pagination || {};
-                const mapped = mapResults(results, pag.page || p, pag.limit || limit);
-                setRows(mapped);
-                setPage(pag.page || p);
-                setLimit(pag.limit || limit);
-                setTotalPages(pag.totalPages || 1);
-            } catch (err) {
-                // if (instance.isCancel(err)) {
-                // } else {
-                //     console.error("Fetch results failed:", err?.message || err);
-                //     setRows([]);
-                //     setTotalPages(1);
-                // }
-            } finally {
-                setLoading(false);
-            }
-
-            // return cleanup để hủy nếu component unmount
-            return () => controller.abort();
-        },
-        [limit]
-    );
+    const [curPage, setCurPage] = useState(1)
+    const deviceId = "esp32s3-01"
 
     useEffect(() => {
-        const cleanup = fetchPage(1);
-        return () => {
-            if (typeof cleanup === "function") cleanup();
-        };
-    }, [fetchPage]);
+        dispatch(fetchHealthResults({page: 1, deviceId}))
+    }, [dispatch]);
 
     const handleFilter = async (from, to) => {
         setRange({ from, to });
-        await fetchPage(1, from, to);
+        setCurPage(1);
+        dispatch(fetchHealthResults({page: 1, from, to, deviceId}))
     };
 
     const handlePage = async (p) => {
-        setPage(p);
-        await fetchPage(p, range.from, range.to);
+        setCurPage(p)
+        dispatch(fetchHealthResults({page: p, from: range.from, to: range.to, deviceId}))
     };
-
-
-    const actions = (
-        <div className="flex items-center gap-2">
-            <button
-                className="inline-flex items-center h-10 px-3 rounded-xl border bg-white text-slate-700 hover:bg-slate-50"
-                onClick={() => fetchPage(page, range.from, range.to)}
-            >
-                <RefreshCcw className="h-4 w-4 mr-1.5" /> Làm mới
-            </button>
-        </div>
-    );
+    const rows = mapResults(rowsRaw, curPage, limit)
 
     return (
         <div className="min-h-screen w-full bg-gradient-to-b from-gray-50/60 to-gray-50/100 p-4 md:p-8 space-y-6">
             <TimeFilter
-                onFilter={(f, t) => handleFilter(f, t)}
+                onFilter={handleFilter}
                 onReset={() => {
                     setRange({ from: null, to: null });
-                    fetchPage(1);
+                    handleFilter(null, null);
                 }}
             />
 
-            <Card title="Kiểm tra chất lượng nông sản" actions={actions}>
+            <Card title="Kiểm tra chất lượng nông sản" >
                 {!loading && rows.length === 0 ? (
                     <EmptyState
                         title="Chưa có dữ liệu"
@@ -153,8 +99,8 @@ export default function QualityCheck() {
                     <QualityTable
                         data={rows}
                         loading={loading}
-                        page={page}
-                        totalPages={totalPages}
+                        page={curPage}
+                        totalPages={totalPages || 1}
                         onPage={handlePage}
                     />
                 )}

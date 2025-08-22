@@ -1,11 +1,8 @@
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
-import countReducer from "./slices/countSlice";
-import productReducer from "./slices/productSlice";
 import { Provider } from "react-redux";
-
+import healthCheckReducer from './slices/healthCheckSlice'
 const rootReducer = combineReducers({
-    count: countReducer,
-    product: productReducer
+    healthCheck: healthCheckReducer
 });
 
 const store = configureStore({

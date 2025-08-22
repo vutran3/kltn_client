@@ -7,7 +7,7 @@ import { getDataApi } from "../utils/fetch";
 import { fmtTs, toMs } from "../utils";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchData } from "../redux/thunks/productThunk";
-import { countSelector } from "../redux/selector";
+// import { countSelector } from "../redux/selector";
 import { decrease, increase } from "../redux/slices/countSlice";
 
 const DEFAULT_DEVICE_ID = "esp32s3-01";
@@ -43,7 +43,7 @@ const fetchHistory = async ({ deviceId, limit, fromMs, toMs, sort = -1 }) => {
 
 const Home = () => {
     const dispatch = useDispatch();
-    const { value } = useSelector(countSelector);
+    // const { value } = useSelector(countSelector);
     const [deviceId, setDeviceId] = useState(DEFAULT_DEVICE_ID);
 
     const [last, setLast] = useState(null);
@@ -90,12 +90,12 @@ const Home = () => {
         dispatch(fetchData());
     });
 
-    const onDecrease = () => {
-        dispatch(decrease());
-    };
-    const onIncrease = () => {
-        dispatch(increase());
-    };
+    // const onDecrease = () => {
+    //     dispatch(decrease());
+    // };
+    // const onIncrease = () => {
+    //     dispatch(increase());
+    // };
 
     const notifications = [];
 
@@ -118,7 +118,7 @@ const Home = () => {
                         />
                     </div>
 
-                    <div className="flex gap-2 items-center">
+                    {/* <div className="flex gap-2 items-center">
                         <div
                             onClick={onDecrease}
                             className="w-8 h-8 rounded-lg bg-amber-100 cursor-pointer flex justify-center items-center"
@@ -132,7 +132,7 @@ const Home = () => {
                         >
                             +
                         </div>
-                    </div>
+                    </div> */}
                     <div className="text-sm">
                         {loading ? (
                             <span className="text-gray-700">Đang tải...</span>

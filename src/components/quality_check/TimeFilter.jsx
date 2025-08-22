@@ -6,18 +6,18 @@ export default function TimeFilter({ onFilter, onReset }) {
     const [from, setFrom] = useState(() => new Date().toISOString().slice(0, 16));
     const [to, setTo] = useState("");
 
+    const toEpochMs = (localValue) => {
+        if(!localValue) return null;
+        const d = new Date(localValue);
+        if (Number.isNaN(d.getTime())) throw new Error('Invalid datetime-local');
+        return d.getTime();
+    };
 
     return (
         <div className="w-full rounded-2xl bg-white/90 shadow p-4 md:p-6 border border-slate-200">
             <h2 className="text-center text-xl md:text-2xl font-semibold tracking-wide text-slate-800">
                 BỘ LỌC THỜI GIAN
             </h2>
-
-
-            {/*
-Fix overlap by using a 3-column grid with an auto-sized action column on large screens.
-On small screens everything stacks and buttons become full-width.
-*/}
             <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_1fr_auto] gap-3 items-end">
                 {/* From */}
                 <div>
@@ -26,6 +26,7 @@ On small screens everything stacks and buttons become full-width.
                         type="datetime-local"
                         value={from}
                         onChange={(e) => setFrom(e.target.value)}
+                        step={1}
                         className="w-full h-11 rounded-xl border border-slate-300 px-3 outline-none focus:ring-2 focus:ring-sky-400"
                     />
                 </div>
@@ -39,6 +40,7 @@ On small screens everything stacks and buttons become full-width.
                         value={to}
                         onChange={(e) => setTo(e.target.value)}
                         placeholder="dd/mm/yyyy --:-- --"
+                        step={1}
                         className="w-full h-11 rounded-xl border border-slate-300 px-3 outline-none focus:ring-2 focus:ring-sky-400"
                     />
                 </div>
@@ -47,7 +49,7 @@ On small screens everything stacks and buttons become full-width.
                 {/* Actions */}
                 <div className="flex flex-col lg:flex-row gap-2 lg:justify-end lg:items-end shrink-0">
                     <button
-                        onClick={() => onFilter(from, to)}
+                        onClick={() => onFilter(toEpochMs(from), toEpochMs(to))}
                         className="inline-flex items-center justify-center h-11 px-4 rounded-xl bg-sky-600 text-white font-medium shadow-sm hover:bg-sky-700 active:bg-sky-800 transition-colors w-full lg:w-auto"
                     >
                         <Filter className="w-5 h-5 mr-2" />
