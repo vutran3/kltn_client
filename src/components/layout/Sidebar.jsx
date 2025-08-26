@@ -29,7 +29,7 @@ const menu = [
     {
         Icon: LiaWarehouseSolid,
         name: "Quản lý nông sản",
-        link: "/"
+        link: "/produce-manager"
     }
 ];
 
@@ -42,7 +42,7 @@ function Sidebar() {
                         key={name}
                         className="text-gray-700 hover:text-blue-600 text-base font-semibold px-2 py-3 hover:bg-gray-50 w-full"
                     >
-                        <Link to={link} className="flex gap-2 items-center">
+                        <Link to={link} className="flex gap-3 items-center">
                             <Icon size={20} />
                             <span>{name}</span>
                         </Link>
