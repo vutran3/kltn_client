@@ -3,16 +3,9 @@ import CalendarWeather from "../components/home/CalendarWeather";
 import Notification from "../components/home/Notification";
 import MetricCard from "../components/home/MetricCard";
 import { getDataApi } from "../utils/fetch";
-<<<<<<< Updated upstream
 import { fmtTs, toMs } from "../utils";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchData } from "../redux/thunks/productThunk";
-import { countSelector } from "../redux/selector";
-import { decrease, increase } from "../redux/slices/countSlice";
-=======
-import { fmtTs } from "../utils";
 import HistoryTable from "../components/home/HistoryTable";
->>>>>>> Stashed changes
 
 const DEFAULT_DEVICE_ID = "esp32s3-01";
 const POLL_MS = Number(import.meta.env?.POLL_API_MS || 10000);
@@ -23,11 +16,6 @@ const fetchLast = async (deviceId) => {
 };
 
 const Home = () => {
-<<<<<<< Updated upstream
-    const dispatch = useDispatch();
-    const { value } = useSelector(countSelector);
-=======
->>>>>>> Stashed changes
     const [deviceId, setDeviceId] = useState(DEFAULT_DEVICE_ID);
 
     const [last, setLast] = useState(null);
@@ -47,27 +35,6 @@ const Home = () => {
         }
     };
 
-<<<<<<< Updated upstream
-    // Test redux
-    useEffect(() => {
-        loadData(deviceId);
-        const id = setInterval(() => loadData(deviceId), POLL_MS);
-        return () => clearInterval(id);
-    }, [deviceId]);
-
-    useEffect(() => {
-        dispatch(fetchData());
-    });
-
-    const onDecrease = () => {
-        dispatch(decrease());
-    };
-    const onIncrease = () => {
-        dispatch(increase());
-    };
-
-=======
->>>>>>> Stashed changes
     const notifications = [];
 
     const warnSoilHumidity = typeof last?.soilHumidity === "number" ? last.soilHumidity < 30 : false;
@@ -95,24 +62,6 @@ const Home = () => {
                         />
                     </div>
 
-<<<<<<< Updated upstream
-                    <div className="flex gap-2 items-center">
-                        <div
-                            onClick={onDecrease}
-                            className="w-8 h-8 rounded-lg bg-amber-100 cursor-pointer flex justify-center items-center"
-                        >
-                            -
-                        </div>
-                        <span className="font-semibold">{value}</span>
-                        <div
-                            onClick={onIncrease}
-                            className="w-8 h-8 rounded-lg bg-amber-100 cursor-pointer flex justify-center items-center"
-                        >
-                            +
-                        </div>
-                    </div>
-=======
->>>>>>> Stashed changes
                     <div className="text-sm">
                         {loading ? (
                             <span className="text-gray-700">Đang tải...</span>

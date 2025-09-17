@@ -65,13 +65,13 @@ export default function QualityCheck() {
         async (p = 1, from = null, to = null) => {
             setLoading(true);
             const controller = new AbortController();
-
+            const deviceId = "esp32s3-01";
             try {
                 const params = { page: p };
                 // nếu backend có hỗ trợ lọc thời gian, truyền kèm ISO
                 if (from) params.from = new Date(from).toISOString();
                 if (to) params.to = new Date(to).toISOString();
-
+                if (deviceId) params.deviceId = deviceId;
                 const { data } = await instance.get("/health-check/results", {
                     params,
                     signal: controller.signal,
