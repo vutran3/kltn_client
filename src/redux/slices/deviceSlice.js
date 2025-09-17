@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { getProducts } from "../thunks/productThunk";
+import { getDevices } from "../thunks/deviceThunk";
 
 const initialState = {
     data: {},
@@ -7,15 +7,15 @@ const initialState = {
     error: null
 };
 
-const productSlice = createSlice({
-    name: "product",
+const deviceSlice = createSlice({
+    name: "device",
     initialState,
     reducers: {},
     extraReducers: (builder) => {
-        builder.addCase(getProducts.fulfilled, (state, action) => {
+        builder.addCase(getDevices.fulfilled, (state, action) => {
             state.data = action.payload;
         });
     }
 });
 
-export default productSlice.reducer;
+export default deviceSlice.reducer;

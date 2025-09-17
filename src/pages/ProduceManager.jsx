@@ -15,7 +15,7 @@ export default function ProduceManager() {
     const [active, setActive] = useState("products");
     return (
         <div className="max-w-7xl mx-auto p-6">
-            <h1 className="text-2xl font-semibold mb-4">Quản lý Nông nghiệp</h1>
+            <h1 className="text-2xl font-semibold mb-4">Quản lý Nông Sản</h1>
             <TabNav tabs={TABS} active={active} onChange={setActive} />
             {active === "products" && <ProductsTab />}
             {active === "fields" && <FieldsTab />}
