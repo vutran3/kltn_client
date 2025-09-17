@@ -19,7 +19,7 @@ const menu = [
     {
         Icon: TbAutomation,
         name: "Điều khiển thiết bị",
-        link: "/"
+        link: "/device-controller"
     },
     {
         Icon: TbHeartSearch,
@@ -35,7 +35,7 @@ const menu = [
 
 function Sidebar() {
     return (
-        <aside className="w-56 bg-white shadow-sm fixed top-16 left-0 h-full">
+        <aside className="w-60 bg-white shadow-sm fixed top-16 left-0 h-full">
             <nav className="space-y-4">
                 {menu.map(({ Icon, name, link }) => (
                     <button
