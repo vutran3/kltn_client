@@ -4,12 +4,13 @@ import healthCheckReducer from "./slices/healthCheckSlice";
 import productReduce from "./slices/productSlice";
 import fieldReduce from "./slices/fieldSlice";
 import deviceReduce from "./slices/deviceSlice";
-
+import notificationReducer from './slices/notificationSlice';
 const rootReducer = combineReducers({
     healthCheck: healthCheckReducer,
     product: productReduce,
     field: fieldReduce,
-    device: deviceReduce
+    device: deviceReduce,
+    notification: notificationReducer
 });
 
 const store = configureStore({

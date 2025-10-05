@@ -9,6 +9,11 @@ export const postDataApi = async (uri, data, headers) => {
     return res;
 };
 
+export const putDataApi = async (uri, data, headers) => {
+    const res = await instance.put(uri, data, headers);
+    return res;
+}
+
 export const patchDataApi = async (uri, data) => {
     const res = await instance.patch(uri, data);
     return res;

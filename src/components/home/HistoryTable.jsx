@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getDataApi } from "../../utils/fetch";
 import { fmtTs, toMs } from "../../utils";
 
-const DEFAULT_DEVICE_ID = "esp32s3-01";
+const DEFAULT_DEVICE_ID = "esp32-01";
 const POLL_MS = Number(import.meta.env?.POLL_API_MS || 10000);
 const HISTORY_LIMIT = 100;
 

@@ -1,6 +1,7 @@
 import { Bell, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import logo from "/images/logo.png";
+import NotificationBell from "../notification/NotificationBell";
 function Header() {
     const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -20,10 +21,7 @@ function Header() {
                 <div className="flex items-center space-x-4">
                     <span className="text-lg font-mono">{currentTime.toLocaleTimeString("vi-VN")}</span>
                     <div className="relative">
-                        <Bell className="w-6 h-6" />
-                        <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                            8
-                        </span>
+                        <NotificationBell />
                     </div>
                     <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
                         <User className="w-5 h-5" />
