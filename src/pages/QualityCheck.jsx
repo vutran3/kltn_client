@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { RefreshCcw, Camera, Bot } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { RefreshCcw } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import Card from "../components/quality_check/Card";
 import TimeFilter from "../components/quality_check/TimeFilter";
 import QualityTable from "../components/quality_check/QualityTable";
@@ -54,7 +55,9 @@ function mapResults(results, page, limit) {
 export default function QualityCheck() {
     const [range, setRange] = useState({ from: null, to: null });
     const [loading, setLoading] = useState(false);
-
+    const [searchParams] = useSearchParams();
+    const hcid = searchParams.get("hcid") || null;
+    const navigate = useNavigate();
 
     const [rows, setRows] = useState([]);
     const [page, setPage] = useState(1);
@@ -65,7 +68,7 @@ export default function QualityCheck() {
         async (p = 1, from = null, to = null) => {
             setLoading(true);
             const controller = new AbortController();
-            const deviceId = "esp32s3-01";
+            const deviceId = "esp32-01";
             try {
                 const params = { page: p };
                 // nếu backend có hỗ trợ lọc thời gian, truyền kèm ISO
@@ -104,19 +107,54 @@ export default function QualityCheck() {
         [limit]
     );
 
+    const fetchById = useCallback(async (id) => {
+        if (!id) return;
+        setLoading(true);
+        try {
+            const { data } = await instance.get(`/health-check/get/${id}`, {
+                headers: { Accept: "application/json" },
+                timeout: 25000,
+            });
+            console.log("Fetch by ID result:", data);
+            const mapped = mapResults([data?.metadata || {}], 1, 1);
+            setRows(mapped);
+            setPage(1);
+            setLimit(1);
+            setTotalPages(1);
+        } catch (err) {
+            console.error(err);
+            setRows([]);
+            setPage(1);
+            setLimit(1);
+            setTotalPages(1);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+
     useEffect(() => {
-        const cleanup = fetchPage(1);
+        let cleanup;
+        if (hcid) {
+            cleanup = fetchById(hcid);
+        } else {
+            cleanup = fetchPage(1);
+        }
         return () => {
             if (typeof cleanup === "function") cleanup();
         };
-    }, [fetchPage]);
+    }, [hcid, fetchById, fetchPage]);
 
     const handleFilter = async (from, to) => {
         setRange({ from, to });
+        if (hcid) {
+            navigate("/quality-check", { replace: true });
+        }
         await fetchPage(1, from, to);
     };
 
     const handlePage = async (p) => {
+        if (hcid) return;
         setPage(p);
         await fetchPage(p, range.from, range.to);
     };

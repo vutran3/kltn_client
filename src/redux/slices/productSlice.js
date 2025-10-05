@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { getProducts } from "../thunks/productThunk";
+import { getProductByDeviceId, getProducts } from "../thunks/productThunk";
 
 const initialState = {
     data: {},
@@ -14,7 +14,10 @@ const productSlice = createSlice({
     extraReducers: (builder) => {
         builder.addCase(getProducts.fulfilled, (state, action) => {
             state.data = action.payload;
-        });
+        })
+        .addCase(getProductByDeviceId.fulfilled, (state, action) => {
+            state.data = action.payload
+        })
     }
 });
 

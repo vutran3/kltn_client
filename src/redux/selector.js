@@ -5,3 +5,6 @@ export const selectHealthError = (state) => state.healthCheck.error;
 export const selectProductData = (state) => state.product.data;
 export const selectFieldData = (state) => state.field.data;
 export const selectDeviceData = (state) => state.device.data;
+export const selectNotif = (s) => s.notification;
+export const selectUnread = (s) => s.notification.unread;
+export const selectList   = (s) => s.notification.list;
