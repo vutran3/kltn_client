@@ -19,30 +19,30 @@ const menu = [
     {
         Icon: TbAutomation,
         name: "Điều khiển thiết bị",
-        link: "/"
+        link: "/device-controller"
     },
     {
         Icon: TbHeartSearch,
         name: "Kiểm tra nông sản",
-        link: "/"
+        link: "/quality-check"
     },
     {
         Icon: LiaWarehouseSolid,
         name: "Quản lý nông sản",
-        link: "/"
+        link: "/produce-manager"
     }
 ];
 
 function Sidebar() {
     return (
-        <aside className="w-56 bg-white shadow-sm fixed top-16 left-0 h-full">
+        <aside className="w-60 bg-white shadow-sm fixed top-16 left-0 h-full">
             <nav className="space-y-4">
                 {menu.map(({ Icon, name, link }) => (
                     <button
                         key={name}
                         className="text-gray-700 hover:text-blue-600 text-base font-semibold px-2 py-3 hover:bg-gray-50 w-full"
                     >
-                        <Link to={link} className="flex gap-2 items-center">
+                        <Link to={link} className="flex gap-3 items-center">
                             <Icon size={20} />
                             <span>{name}</span>
                         </Link>

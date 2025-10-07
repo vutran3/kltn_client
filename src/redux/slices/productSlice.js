@@ -1,8 +1,8 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { fetchData } from "../thunks/productThunk";
+import { createSlice } from "@reduxjs/toolkit";
+import { getProductByDeviceId, getProducts } from "../thunks/productThunk";
 
 const initialState = {
-    data: [],
+    data: {},
     isLoading: false,
     error: null
 };
@@ -12,9 +12,12 @@ const productSlice = createSlice({
     initialState,
     reducers: {},
     extraReducers: (builder) => {
-        builder.addCase(fetchData.fulfilled, (state, action) => {
+        builder.addCase(getProducts.fulfilled, (state, action) => {
             state.data = action.payload;
-        });
+        })
+        .addCase(getProductByDeviceId.fulfilled, (state, action) => {
+            state.data = action.payload
+        })
     }
 });
 
