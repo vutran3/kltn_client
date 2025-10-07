@@ -4,7 +4,6 @@ import Notification from "../components/home/Notification";
 import MetricCard from "../components/home/MetricCard";
 import { getDataApi } from "../utils/fetch";
 import { fmtTs, toMs } from "../utils";
-import { useDispatch, useSelector } from "react-redux";
 import HistoryTable from "../components/home/HistoryTable";
 
 const DEFAULT_DEVICE_ID = "esp32s3-01";

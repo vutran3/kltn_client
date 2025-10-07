@@ -4,4 +4,5 @@ export const selectHealthPagination = (state) => state.healthCheck.pagination;
 export const selectHealthError = (state) => state.healthCheck.error;
 export const selectProductData = (state) => state.product.data;
 export const selectFieldData = (state) => state.field.data;
+export const selectAuth = (state) => state.auth;
 export const selectDeviceData = (state) => state.device.data;
