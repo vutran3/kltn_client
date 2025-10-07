@@ -4,9 +4,9 @@ import Notification from "../components/home/Notification";
 import MetricCard from "../components/home/MetricCard";
 import { getDataApi } from "../utils/fetch";
 import { fmtTs, toMs } from "../utils";
-import { useDispatch, useSelector } from "react-redux";
 import HistoryTable from "../components/home/HistoryTable";
 import { getProductByDeviceId } from "../redux/thunks/productThunk";
+import { useDispatch } from "react-redux";
 
 const DEFAULT_DEVICE_ID = "esp32-01";
 const POLL_MS = Number(import.meta.env?.POLL_API_MS || 10000);
@@ -23,21 +23,80 @@ const POLL_MS = Number(import.meta.env?.POLL_API_MS || 10000);
  * - soilT: °C (nhiệt độ đất)
  */
 const RULES = {
-    "Cải Thìa": { temperature: [15, 25], rh: [75, 85], soil: [60, 80], ph: [5.5, 6.5], n: [80, 150], p: [30, 60], k: [100, 180], soilT: [10, 30] },
-    "Bắp Cải": { temperature: [15, 20], rh: [80, 90], soil: [70, 85], ph: [5.6, 6.5], n: [80, 150], p: [30, 60], k: [100, 180], soilT: [10, 30] },
-    "Bông cải xanh": { temperature: [11, 24], rh: [70, 80], soil: [60, 80], ph: [5.5, 7.0], n: [80, 150], p: [30, 60], k: [100, 180], soilT: [10, 29] },
-    "Bông cải trắng": { temperature: [11, 24], rh: [70, 80], soil: [75, 85], ph: [6.0, 7.0], n: [80, 150], p: [30, 60], k: [100, 180], soilT: [10, 29] },
-    "Cải bẹ xanh": { temperature: [18, 25], rh: [75, 85], soil: [70, 80], ph: [6.0, 6.8], n: [80, 150], p: [30, 60], k: [100, 180], soilT: [10, 30] },
-    "Cải Thảo": { temperature: [18, 22], rh: [85, 90], soil: [70, 80], ph: [6.0, 6.8], n: [80, 150], p: [30, 60], k: [100, 180], soilT: [10, 30] },
-    "Cải cúc": { temperature: [15, 25], rh: [70, 80], soil: [60, 70], ph: [6.0, 6.8], n: [80, 150], p: [30, 60], k: [100, 180], soilT: [10, 25] },
+    "Cải Thìa": {
+        temperature: [15, 25],
+        rh: [75, 85],
+        soil: [60, 80],
+        ph: [5.5, 6.5],
+        n: [80, 150],
+        p: [30, 60],
+        k: [100, 180],
+        soilT: [10, 30]
+    },
+    "Bắp Cải": {
+        temperature: [15, 20],
+        rh: [80, 90],
+        soil: [70, 85],
+        ph: [5.6, 6.5],
+        n: [80, 150],
+        p: [30, 60],
+        k: [100, 180],
+        soilT: [10, 30]
+    },
+    "Bông cải xanh": {
+        temperature: [11, 24],
+        rh: [70, 80],
+        soil: [60, 80],
+        ph: [5.5, 7.0],
+        n: [80, 150],
+        p: [30, 60],
+        k: [100, 180],
+        soilT: [10, 29]
+    },
+    "Bông cải trắng": {
+        temperature: [11, 24],
+        rh: [70, 80],
+        soil: [75, 85],
+        ph: [6.0, 7.0],
+        n: [80, 150],
+        p: [30, 60],
+        k: [100, 180],
+        soilT: [10, 29]
+    },
+    "Cải bẹ xanh": {
+        temperature: [18, 25],
+        rh: [75, 85],
+        soil: [70, 80],
+        ph: [6.0, 6.8],
+        n: [80, 150],
+        p: [30, 60],
+        k: [100, 180],
+        soilT: [10, 30]
+    },
+    "Cải Thảo": {
+        temperature: [18, 22],
+        rh: [85, 90],
+        soil: [70, 80],
+        ph: [6.0, 6.8],
+        n: [80, 150],
+        p: [30, 60],
+        k: [100, 180],
+        soilT: [10, 30]
+    },
+    "Cải cúc": {
+        temperature: [15, 25],
+        rh: [70, 80],
+        soil: [60, 70],
+        ph: [6.0, 6.8],
+        n: [80, 150],
+        p: [30, 60],
+        k: [100, 180],
+        soilT: [10, 25]
+    }
 };
 
-
 const inRange = (val, [min, max]) =>
-    typeof val === "number" && Number.isFinite(val) && min != null && max != null
-        ? val >= min && val <= max
-        : true;
-
+    typeof val === "number" && Number.isFinite(val) && min != null && max != null ? val >= min && val <= max : true;
 
 const fetchLast = async (deviceId) => {
     const res = await getDataApi(`/readings/last?deviceId=${deviceId}`, null, { cache: "no-store" });
@@ -52,9 +111,9 @@ const Home = () => {
     const [err, setErr] = useState(null);
 
     const [product, setProduct] = useState(null);
-    const cropType = useMemo(() => ( product?.name ), [product]);
+    const cropType = useMemo(() => product?.name, [product]);
     const rule = useMemo(() => RULES[cropType], [cropType]);
-    
+
     const fetchProductByDevice = async (deviceId) => {
         const res = await dispatch(getProductByDeviceId(deviceId)).unwrap();
         return res ?? null;
@@ -64,10 +123,7 @@ const Home = () => {
         setErr(null);
         setLoading(true);
         try {
-            const [lastRow, prod] = await Promise.all([
-                fetchLast(did),
-                fetchProductByDevice(did)
-            ])
+            const [lastRow, prod] = await Promise.all([fetchLast(did), fetchProductByDevice(did)]);
             setLast(lastRow);
             setProduct(prod);
         } catch (e) {
@@ -93,7 +149,7 @@ const Home = () => {
         ph: false,
         n: false,
         p: false,
-        k: false,
+        k: false
     };
     if (last && rule) {
         // Nhiệt độ không khí
@@ -102,8 +158,10 @@ const Home = () => {
             notifications.push({
                 id: "airTemp",
                 type: "warning",
-                message: `Nhiệt độ không khí ${last.airTemperature?.toFixed?.(1)}°C vượt ngưỡng (${rule.temperature[0]}–${rule.temperature[1]}°C) cho ${product?.name || cropType}.`,
-                time: fmtTs(last.t),
+                message: `Nhiệt độ không khí ${last.airTemperature?.toFixed?.(1)}°C vượt ngưỡng (${
+                    rule.temperature[0]
+                }–${rule.temperature[1]}°C) cho ${product?.name || cropType}.`,
+                time: fmtTs(last.t)
             });
         }
         // RH
@@ -112,8 +170,10 @@ const Home = () => {
             notifications.push({
                 id: "airHumidity",
                 type: "warning",
-                message: `Độ ẩm không khí ${last.airHumidity?.toFixed?.(1)}% vượt ngưỡng (${rule.rh[0]}–${rule.rh[1]}%).`,
-                time: fmtTs(last.t),
+                message: `Độ ẩm không khí ${last.airHumidity?.toFixed?.(1)}% vượt ngưỡng (${rule.rh[0]}–${
+                    rule.rh[1]
+                }%).`,
+                time: fmtTs(last.t)
             });
         }
         // Soil moisture
@@ -122,8 +182,10 @@ const Home = () => {
             notifications.push({
                 id: "soilHumidity",
                 type: "warning",
-                message: `Độ ẩm đất ${last.soilHumidity?.toFixed?.(1)}% vượt ngưỡng (${rule.soil[0]}–${rule.soil[1]}%).`,
-                time: fmtTs(last.t),
+                message: `Độ ẩm đất ${last.soilHumidity?.toFixed?.(1)}% vượt ngưỡng (${rule.soil[0]}–${
+                    rule.soil[1]
+                }%).`,
+                time: fmtTs(last.t)
             });
         }
         // Soil Temperature
@@ -132,9 +194,11 @@ const Home = () => {
             notifications.push({
                 id: "soilTemperature",
                 type: "warning",
-                message: `Nhiệt độ đất ${last.soilTemperature?.toFixed?.(1)}°C vượt ngưỡng (${rule.soilT[0]}–${rule.soilT[1]}°C).`,
-                time: fmtTs(last.t),
-            })
+                message: `Nhiệt độ đất ${last.soilTemperature?.toFixed?.(1)}°C vượt ngưỡng (${rule.soilT[0]}–${
+                    rule.soilT[1]
+                }°C).`,
+                time: fmtTs(last.t)
+            });
         }
         // pH
         if (!inRange(last.ph, rule.ph)) {
@@ -143,7 +207,7 @@ const Home = () => {
                 id: "ph",
                 type: "warning",
                 message: `pH ${Number(last.ph).toFixed(2)} vượt ngưỡng (${rule.ph[0]}–${rule.ph[1]}).`,
-                time: fmtTs(last.t),
+                time: fmtTs(last.t)
             });
         }
         // NPK
@@ -153,7 +217,7 @@ const Home = () => {
                 id: "n",
                 type: "warning",
                 message: `N = ${Number(last.nitrogen).toFixed(2)} mg/kg vượt ngưỡng (${rule.n[0]}–${rule.n[1]}).`,
-                time: fmtTs(last.t),
+                time: fmtTs(last.t)
             });
         }
         if (!inRange(last.phosphorus, rule.p)) {
@@ -162,7 +226,7 @@ const Home = () => {
                 id: "p",
                 type: "warning",
                 message: `P = ${Number(last.phosphorus).toFixed(2)} mg/kg vượt ngưỡng (${rule.p[0]}–${rule.p[1]}).`,
-                time: fmtTs(last.t),
+                time: fmtTs(last.t)
             });
         }
         if (!inRange(last.potassium, rule.k)) {
@@ -171,7 +235,7 @@ const Home = () => {
                 id: "k",
                 type: "warning",
                 message: `K = ${Number(last.potassium).toFixed(2)} mg/kg vượt ngưỡng (${rule.k[0]}–${rule.k[1]}).`,
-                time: fmtTs(last.t),
+                time: fmtTs(last.t)
             });
         }
     }
@@ -286,7 +350,7 @@ const Home = () => {
             </div>
 
             {/* Right Sidebar */}
-            <div className="flex flex-col gap-4 min-w-84">
+            <div className="flex flex-col gap-4 w-[380px]">
                 <Notification notifications={notifications} />
                 <CalendarWeather />
             </div>
