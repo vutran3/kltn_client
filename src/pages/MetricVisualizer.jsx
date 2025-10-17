@@ -4,10 +4,11 @@ import TimeFilter from "../components/data_visualization/TimeFilter";
 import MetricChart from "../components/data_visualization/MetricChart";
 import { getDataApi } from "../utils/fetch";
 import { averagePerMinute, mapApiRowsToSeries } from "../utils";
-
-const DEVICE_ID = "esp32s3-01";
+import { useSelector } from "react-redux";
+import { selectDevice } from "../redux/selector";
 
 export default function MetricVisualizer() {
+    const { selectedId } = useSelector(selectDevice);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState(null);
@@ -15,20 +16,19 @@ export default function MetricVisualizer() {
     useEffect(() => {
         setLoading(true);
         setErr(null);
-
-        getDataApi(`/readings?deviceId=${DEVICE_ID}&limit=${100}&sort=${-1}`)
-            .then((res) => {
-                const minuteRows = averagePerMinute(res.data.data.rows, { tzOffsetMinutes: 420 });
-                console.log("minuteRows:::", minuteRows);
-                setData(mapApiRowsToSeries(minuteRows));
-            })
-            .catch((err) => {
-                setErr(err?.message || "Lọc dữ liệu thất bại");
-            })
-            .finally(() => {
-                setLoading(false);
-            });
-    }, [DEVICE_ID]);
+        if (selectedId)
+            getDataApi(`/readings?deviceId=${selectedId}&limit=${100}&sort=${-1}`)
+                .then((res) => {
+                    const minuteRows = averagePerMinute(res.data.data.rows, { tzOffsetMinutes: 420 });
+                    setData(mapApiRowsToSeries(minuteRows));
+                })
+                .catch((err) => {
+                    setErr(err?.message || "Lọc dữ liệu thất bại");
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
+    }, [selectedId]);
 
     const handleFilter = async (input) => {
         try {
@@ -47,7 +47,7 @@ export default function MetricVisualizer() {
 
             if (from) {
                 getDataApi("/readings", {
-                    deviceId: DEVICE_ID,
+                    deviceId: selectedId,
                     from: String(from.getTime()),
                     to: String(to.getTime()),
                     sort: "1"
@@ -56,7 +56,7 @@ export default function MetricVisualizer() {
                     setData(mapApiRowsToSeries(minuteRows));
                 });
             } else {
-                getDataApi(`/readings?deviceId=${DEVICE_ID}&limit=${100}&sort=${-1}`).then((res) => {
+                getDataApi(`/readings?deviceId=${selectedId}&limit=${100}&sort=${-1}`).then((res) => {
                     const minuteRows = averagePerMinute(res.data.data.rows, { tzOffsetMinutes: 420 });
                     setData(mapApiRowsToSeries(minuteRows));
                 });
@@ -72,7 +72,7 @@ export default function MetricVisualizer() {
         setLoading(true);
         setErr(null);
 
-        getDataApi(`/readings?deviceId=${DEVICE_ID}&limit=${100}&sort=${-1}`)
+        getDataApi(`/readings?deviceId=${selectedId}&limit=${100}&sort=${-1}`)
             .then((res) => {
                 const minuteRows = averagePerMinute(res.data.data.rows, { tzOffsetMinutes: 420 });
                 setData(mapApiRowsToSeries(minuteRows));

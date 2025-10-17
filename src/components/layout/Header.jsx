@@ -2,11 +2,14 @@ import { Bell, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import logo from "/images/logo.png";
 import NotificationBell from "../notification/NotificationBell";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/slices/authSlice";
+import UserAvatar from "../common/UserAvatar";
+import { selectAuth } from "../../redux/selector";
 
 function Header() {
     const dispatch = useDispatch();
+    const { data } = useSelector(selectAuth);
     const [currentTime, setCurrentTime] = useState(new Date());
 
     const onLogout = () => {
@@ -32,7 +35,7 @@ function Header() {
                         <NotificationBell />
                     </div>
                     <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5" />
+                        <UserAvatar user={data} size={36} />
                     </div>
                     <button
                         className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-medium"

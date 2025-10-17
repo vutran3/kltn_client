@@ -1,8 +1,13 @@
-
 const NUM_KEYS = [
-    "airTemperature", "airHumidity",
-    "soilTemperature", "soilHumidity",
-    "lightRaw", "ph", "phosphorus", "nitrogen", "potassium",
+    "airTemperature",
+    "airHumidity",
+    "soilTemperature",
+    "soilHumidity",
+    "lightRaw",
+    "ph",
+    "phosphorus",
+    "nitrogen",
+    "potassium"
 ];
 
 export function fmtTime(d) {
@@ -28,40 +33,40 @@ export const toMs = (dateStr) => {
 };
 
 export function averagePerMinute(rows, { tzOffsetMinutes = 420 } = {}) {
-    const tzMs = tzOffsetMinutes * 60 * 1000
+    const tzMs = tzOffsetMinutes * 60 * 1000;
     const buckets = new Map();
 
     for (const r of rows) {
-        const tMs = Date.parse(r.t)
-        const minuteKey = Math.floor((tMs + tzMs) / 60000) * 60000 - tzMs
+        const tMs = Date.parse(r.t);
+        const minuteKey = Math.floor((tMs + tzMs) / 60000) * 60000 - tzMs;
 
-        let acc = buckets.get(minuteKey)
+        let acc = buckets.get(minuteKey);
         if (!acc) {
-            acc = { sum: {}, cnt: {} }
-            buckets.set(minuteKey, acc)
+            acc = { sum: {}, cnt: {} };
+            buckets.set(minuteKey, acc);
         }
         for (const k of NUM_KEYS) {
-            const v = r[k]
-            if (typeof v === 'number' && Number.isFinite(v)) {
-                acc.sum[k] = (acc.sum[k] ?? 0) + v
-                acc.cnt[k] = (acc.cnt[k] ?? 0) + 1
+            const v = r[k];
+            if (typeof v === "number" && Number.isFinite(v)) {
+                acc.sum[k] = (acc.sum[k] ?? 0) + v;
+                acc.cnt[k] = (acc.cnt[k] ?? 0) + 1;
             }
         }
     }
 
-    const out = []
+    const out = [];
     for (const [minuteKey, { sum, cnt }] of buckets) {
-        const averaged = {}
+        const averaged = {};
         for (const k of Object.keys(sum)) {
-            averaged[k] = sum[k] / cnt[k]
+            averaged[k] = sum[k] / cnt[k];
         }
         out.push({
             t: new Date(minuteKey).toISOString(),
             ...averaged
-        })
+        });
     }
-    out.sort((a, b) => Date.parse(a.t) - Date.parse(b.t))
-    return out
+    out.sort((a, b) => Date.parse(a.t) - Date.parse(b.t));
+    return out;
 }
 
 export function mapApiRowsToSeries(rows) {
@@ -72,11 +77,56 @@ export function mapApiRowsToSeries(rows) {
             time: fmtTime(dt),
             temp: typeof r.airTemperature === "number" ? Number(r.airTemperature.toFixed(1)) : null,
             air: typeof r.airHumidity === "number" ? r.airHumidity : null,
-            ph: typeof r.ph === 'number' ? r.airHumidity : null,
-            photpho: typeof r.phosphorus === 'number' ? r.phosphorus : null,
-            nitro: typeof r.nitrogen === 'number' ? r.nitrogen : null,
-            kali: typeof r.potassium === 'number' ? r.potassium : null,
-            soilHum: typeof r.soilHumidity === 'number' ? r.soilHumidity : null
+            ph: typeof r.ph === "number" ? r.airHumidity : null,
+            photpho: typeof r.phosphorus === "number" ? r.phosphorus : null,
+            nitro: typeof r.nitrogen === "number" ? r.nitrogen : null,
+            kali: typeof r.potassium === "number" ? r.potassium : null,
+            soilHum: typeof r.soilHumidity === "number" ? r.soilHumidity : null
         };
     });
+}
+
+export function fmtTimeMs(ms) {
+    if (!ms || ms <= 0) return "-";
+    const d = new Date(ms);
+    return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+}
+
+export function fmtDuration(ms) {
+    if (!ms || ms <= 0) return "0s";
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    const rs = s % 60;
+    if (m < 60) return `${m}m ${rs}s`;
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return `${h}h ${rm}m ${rs}s`;
+}
+
+export function clampNonNegativeNumber(n, def = 0) {
+    const num = Number(n);
+    if (Number.isNaN(num) || num < 0) return def;
+    return num;
+}
+
+export function datetimeLocalToMs(v) {
+    if (!v) return null;
+    const d = new Date(v);
+    const t = d.getTime();
+    return Number.isNaN(t) ? null : t;
+}
+
+export function computeEffectiveActive({ is_active, schedule_ms, now_ms, duration_ms }) {
+    const hasSchedule = !!schedule_ms;
+    const startedOk = !hasSchedule || now_ms >= schedule_ms;
+    const offAt = (hasSchedule ? schedule_ms : now_ms) + (duration_ms || 0);
+    const notExpired = !duration_ms || now_ms < offAt;
+    return !!is_active && startedOk && notExpired;
+}
+
+function computeEndAt({ is_active, schedule_ms, now_ms, duration_ms }) {
+    if (!is_active || !duration_ms || duration_ms <= 0) return 0;
+    const start = schedule_ms && schedule_ms > 0 ? schedule_ms : now_ms;
+    return start + duration_ms;
 }

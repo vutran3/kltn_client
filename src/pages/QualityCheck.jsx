@@ -5,7 +5,9 @@ import Card from "../components/quality_check/Card";
 import TimeFilter from "../components/quality_check/TimeFilter";
 import QualityTable from "../components/quality_check/QualityTable";
 import EmptyState from "../components/quality_check/EmptyState";
-import instance from '../config/axios.config'
+import instance from "../config/axios.config";
+import { useSelector } from "react-redux";
+import { selectDevice } from "../redux/selector";
 
 const fmtVN = (iso) => {
     if (!iso) return "";
@@ -15,7 +17,7 @@ const fmtVN = (iso) => {
         minute: "2-digit",
         day: "2-digit",
         month: "2-digit",
-        year: "numeric",
+        year: "numeric"
     });
 };
 
@@ -24,14 +26,9 @@ function mapResults(results, page, limit) {
         const ai = item?.ai_prediction || {};
         const originalUrl = item?.image_predetect?.image_url || "";
         const annotatedB64 = item?.ai_prediction?.annotated_image_base64;
-        const detectedUrl = annotatedB64
-            ? `data:image/png;base64,${annotatedB64}`
-            : originalUrl;
+        const detectedUrl = annotatedB64 ? `data:image/png;base64,${annotatedB64}` : originalUrl;
 
-        const aiMessage =
-            item?.predicting_description ||
-            item?.ai_prediction?.prediction_text ||
-            "";
+        const aiMessage = item?.predicting_description || item?.ai_prediction?.prediction_text || "";
 
         return {
             id: item?._id || `${page}-${idx}`,
@@ -43,32 +40,29 @@ function mapResults(results, page, limit) {
             boxes: ai?.boxes || [],
             originalSize: {
                 width: ai?.image_width || item?.image_predetect?.width || 0,
-                height: ai?.image_height || item?.image_predetect?.height || 0,
-            },
+                height: ai?.image_height || item?.image_predetect?.height || 0
+            }
         };
     });
 }
 
-
-
-
 export default function QualityCheck() {
-    const [range, setRange] = useState({ from: null, to: null });
-    const [loading, setLoading] = useState(false);
-    const [searchParams] = useSearchParams();
-    const hcid = searchParams.get("hcid") || null;
     const navigate = useNavigate();
-
+    const [searchParams] = useSearchParams();
+    const { selectedId } = useSelector(selectDevice);
+    const hcid = searchParams.get("hcid") || null;
+    const [loading, setLoading] = useState(false);
     const [rows, setRows] = useState([]);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
+    const [range, setRange] = useState({ from: null, to: null });
 
     const fetchPage = useCallback(
         async (p = 1, from = null, to = null) => {
             setLoading(true);
             const controller = new AbortController();
-            const deviceId = "esp32-01";
+            const deviceId = selectedId;
             try {
                 const params = { page: p };
                 // nếu backend có hỗ trợ lọc thời gian, truyền kèm ISO
@@ -79,7 +73,7 @@ export default function QualityCheck() {
                     params,
                     signal: controller.signal,
                     timeout: 30000,
-                    headers: { Accept: "application/json" },
+                    headers: { Accept: "application/json" }
                 });
 
                 const meta = data?.metadata || {};
@@ -113,9 +107,8 @@ export default function QualityCheck() {
         try {
             const { data } = await instance.get(`/health-check/get/${id}`, {
                 headers: { Accept: "application/json" },
-                timeout: 25000,
+                timeout: 25000
             });
-            console.log("Fetch by ID result:", data);
             const mapped = mapResults([data?.metadata || {}], 1, 1);
             setRows(mapped);
             setPage(1);
@@ -132,18 +125,16 @@ export default function QualityCheck() {
         }
     }, []);
 
-
     useEffect(() => {
-        let cleanup;
-        if (hcid) {
-            cleanup = fetchById(hcid);
-        } else {
-            cleanup = fetchPage(1);
+        if (selectedId) {
+            let cleanup;
+            if (hcid) cleanup = fetchById(hcid);
+            else cleanup = fetchPage(1);
+            return () => {
+                if (typeof cleanup === "function") cleanup();
+            };
         }
-        return () => {
-            if (typeof cleanup === "function") cleanup();
-        };
-    }, [hcid, fetchById, fetchPage]);
+    }, [hcid, fetchById, fetchPage, selectedId]);
 
     const handleFilter = async (from, to) => {
         setRange({ from, to });
@@ -158,7 +149,6 @@ export default function QualityCheck() {
         setPage(p);
         await fetchPage(p, range.from, range.to);
     };
-
 
     const actions = (
         <div className="flex items-center gap-2">

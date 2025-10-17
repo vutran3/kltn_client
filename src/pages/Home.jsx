@@ -3,141 +3,42 @@ import CalendarWeather from "../components/home/CalendarWeather";
 import Notification from "../components/home/Notification";
 import MetricCard from "../components/home/MetricCard";
 import { getDataApi } from "../utils/fetch";
-import { fmtTs, toMs } from "../utils";
+import { fmtTs } from "../utils";
 import HistoryTable from "../components/home/HistoryTable";
 import { getProductByDeviceId } from "../redux/thunks/productThunk";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { selectAuth, selectDevice } from "../redux/selector";
+import { RULES } from "../constants";
 
-const DEFAULT_DEVICE_ID = "esp32-01";
 const POLL_MS = Number(import.meta.env?.POLL_API_MS || 10000);
-
-/** ================== TẬP LUẬT ==================
- * Các ngưỡng min/max cho từng loại cây.
- * Lưu ý: nhiệt độ có thể là khoảng (min-max). RH/soil/pH/NPK cùng cách so sánh.
- * Đơn vị:
- *  - temperature: °C
- *  - rh: % (độ ẩm không khí)
- *  - soil: % (độ ẩm đất)
- *  - ph: không đơn vị
- *  - n/p/k: mg/kg (ppm gần tương đương mg/kg trong bối cảnh đất)
- * - soilT: °C (nhiệt độ đất)
- */
-const RULES = {
-    "Cải Thìa": {
-        temperature: [15, 25],
-        rh: [75, 85],
-        soil: [60, 80],
-        ph: [5.5, 6.5],
-        n: [80, 150],
-        p: [30, 60],
-        k: [100, 180],
-        soilT: [10, 30]
-    },
-    "Bắp Cải": {
-        temperature: [15, 20],
-        rh: [80, 90],
-        soil: [70, 85],
-        ph: [5.6, 6.5],
-        n: [80, 150],
-        p: [30, 60],
-        k: [100, 180],
-        soilT: [10, 30]
-    },
-    "Bông cải xanh": {
-        temperature: [11, 24],
-        rh: [70, 80],
-        soil: [60, 80],
-        ph: [5.5, 7.0],
-        n: [80, 150],
-        p: [30, 60],
-        k: [100, 180],
-        soilT: [10, 29]
-    },
-    "Bông cải trắng": {
-        temperature: [11, 24],
-        rh: [70, 80],
-        soil: [75, 85],
-        ph: [6.0, 7.0],
-        n: [80, 150],
-        p: [30, 60],
-        k: [100, 180],
-        soilT: [10, 29]
-    },
-    "Cải bẹ xanh": {
-        temperature: [18, 25],
-        rh: [75, 85],
-        soil: [70, 80],
-        ph: [6.0, 6.8],
-        n: [80, 150],
-        p: [30, 60],
-        k: [100, 180],
-        soilT: [10, 30]
-    },
-    "Cải Thảo": {
-        temperature: [18, 22],
-        rh: [85, 90],
-        soil: [70, 80],
-        ph: [6.0, 6.8],
-        n: [80, 150],
-        p: [30, 60],
-        k: [100, 180],
-        soilT: [10, 30]
-    },
-    "Cải cúc": {
-        temperature: [15, 25],
-        rh: [70, 80],
-        soil: [60, 70],
-        ph: [6.0, 6.8],
-        n: [80, 150],
-        p: [30, 60],
-        k: [100, 180],
-        soilT: [10, 25]
-    }
-};
 
 const inRange = (val, [min, max]) =>
     typeof val === "number" && Number.isFinite(val) && min != null && max != null ? val >= min && val <= max : true;
 
-const fetchLast = async (deviceId) => {
-    const res = await getDataApi(`/readings/last?deviceId=${deviceId}`, null, { cache: "no-store" });
-    return res?.data?.data?.last || null;
-};
-
 const Home = () => {
     const dispatch = useDispatch();
-    const [deviceId, setDeviceId] = useState(DEFAULT_DEVICE_ID);
+    const { items: myDevices, selectedId, isLoading: loadingDevices } = useSelector(selectDevice);
     const [last, setLast] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [err, setErr] = useState(null);
-
+    const data = useSelector(selectAuth);
     const [product, setProduct] = useState(null);
     const cropType = useMemo(() => product?.name, [product]);
     const rule = useMemo(() => RULES[cropType], [cropType]);
 
-    const fetchProductByDevice = async (deviceId) => {
-        const res = await dispatch(getProductByDeviceId(deviceId)).unwrap();
+    const fetchLast = async () => {
+        const res = await getDataApi(`/readings/last?deviceId=${selectedId}`, null, { cache: "no-store" });
+        return res?.data?.data?.last || null;
+    };
+
+    const fetchProductByDevice = async () => {
+        const res = await dispatch(getProductByDeviceId(selectedId)).unwrap();
         return res ?? null;
     };
 
-    const loadData = async (did, { useFilter = false } = {}) => {
-        setErr(null);
-        setLoading(true);
-        try {
-            const [lastRow, prod] = await Promise.all([fetchLast(did), fetchProductByDevice(did)]);
-            setLast(lastRow);
-            setProduct(prod);
-        } catch (e) {
-            setErr(e?.message || "Fetch error");
-        } finally {
-            setLoading(false);
-        }
+    const loadData = async (did) => {
+        const [lastRow, prod] = await Promise.all([fetchLast(did), fetchProductByDevice(did)]);
+        setLast(lastRow);
+        setProduct(prod);
     };
-
-    useEffect(() => {
-        loadData(deviceId);
-        const id = setInterval(() => loadData(deviceId), POLL_MS);
-        return () => clearInterval(id);
-    }, [deviceId]);
 
     const notifications = [];
 
@@ -151,6 +52,7 @@ const Home = () => {
         p: false,
         k: false
     };
+
     if (last && rule) {
         // Nhiệt độ không khí
         if (!inRange(last.airTemperature, rule.temperature)) {
@@ -240,33 +142,45 @@ const Home = () => {
         }
     }
 
+    useEffect(() => {
+        let timerId = null;
+        if (selectedId) {
+            loadData(selectedId);
+            timerId = setInterval(() => loadData(selectedId), POLL_MS);
+        }
+
+        return () => {
+            if (timerId) clearInterval(timerId);
+        };
+    }, [selectedId]);
+
     return (
         <div className="flex gap-1 w-full">
             {/* Current Metrics */}
             <div className=" bg-white p-6 rounded-sm shadow-xl flex-1">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium">Device ID:</label>
-                        <input
-                            value={deviceId}
-                            onChange={(e) => setDeviceId(e.target.value)}
-                            className="border border-gray-300 rounded px-3 py-1 text-sm bg-white"
-                            placeholder="esp32s3-01"
-                        />
-                    </div>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium">Thiết bị:</label>
 
-                    <div className="text-sm">
-                        {loading ? (
-                            <span className="text-gray-700">Đang tải...</span>
-                        ) : err ? (
-                            <span className="text-red-700">Lỗi: {err}</span>
-                        ) : last ? (
-                            <span className="text-gray-800">
-                                Cập nhật: <strong>{fmtTs(last.t)}</strong>
-                            </span>
-                        ) : (
-                            <span className="text-gray-700">Chưa có dữ liệu</span>
-                        )}
+                            <select
+                                disabled={loadingDevices}
+                                value={selectedId}
+                                onChange={(e) => dispatch(setSelectedDeviceId(e.target.value))}
+                                className="border border-gray-300 rounded px-3 py-2 text-sm bg-white min-w-[260px]"
+                            >
+                                {loadingDevices && <option value="">Đang tải...</option>}
+                                {!loadingDevices && myDevices?.length === 0 && (
+                                    <option value="">— Không có thiết bị —</option>
+                                )}
+                                {!loadingDevices &&
+                                    myDevices?.map((d) => (
+                                        <option key={d._id} value={d.device_id}>
+                                            {d.device_name} ({d.device_id})
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
 

@@ -4,6 +4,7 @@ import { HiOutlineSquares2X2 } from "react-icons/hi2";
 import { TbAutomation } from "react-icons/tb";
 import { TbHeartSearch } from "react-icons/tb";
 import { LiaWarehouseSolid } from "react-icons/lia";
+import { MdGrass } from "react-icons/md";
 
 const menu = [
     {
@@ -27,6 +28,11 @@ const menu = [
         link: "/quality-check"
     },
     {
+        Icon: MdGrass,
+        name: "Kiểm tra môi trường",
+        link: "/env-quality-check"
+    },
+    {
         Icon: LiaWarehouseSolid,
         name: "Quản lý nông sản",
         link: "/produce-manager"
@@ -40,7 +46,7 @@ function Sidebar() {
                 {menu.map(({ Icon, name, link }) => (
                     <button
                         key={name}
-                        className="text-gray-700 hover:text-blue-600 text-base font-semibold px-2 py-3 hover:bg-gray-50 w-full"
+                        className="text-gray-700 hover:text-blue-600 text-base font-semibold px-4 py-3 hover:bg-gray-50 w-full"
                     >
                         <Link to={link} className="flex gap-3 items-center">
                             <Icon size={20} />

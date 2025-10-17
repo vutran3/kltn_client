@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getDataApi, postDataApi, patchDataApi, deleteDataApi } from "../../utils/fetch";
 import SectionCard from "../card/SectionCard";
 import { useDispatch, useSelector } from "react-redux";
 import { createProduct, deleteProduct, getProducts, updateProduct } from "../../redux/thunks/productThunk";
@@ -15,8 +14,7 @@ const initialForm = {
     actual_harvest_date: "",
     weight_unit: "",
     price_per_unit: "",
-    status: "growing",
-    images: ""
+    status: "growing"
 };
 
 const inputCls =
@@ -28,8 +26,8 @@ const segBtn =
 
 const status = [
     { value: "growing", label: "Đang trồng" },
-    { value: "harvalueesting", label: "Thu hoạch" },
-    { value: "procesing", label: "Sơ chế" }
+    { value: "harvesting", label: "Thu hoạch" },
+    { value: "selling", label: "Mua bán" }
 ];
 
 export default function ProductsTab() {
@@ -48,21 +46,11 @@ export default function ProductsTab() {
         return productList.filter((it) => it.name?.toLowerCase().includes(s) || it.type?.toLowerCase().includes(s));
     }, [productList, search]);
 
-    const reloadFields = () => {
-        dispatch(getFields());
-    };
-
     const onSubmit = async (e) => {
         e.preventDefault();
         const payload = {
             ...form,
-            price_per_unit: form.price_per_unit ? Number(form.price_per_unit) : undefined,
-            images: form.images
-                ? form.images
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                : []
+            price_per_unit: form.price_per_unit ? Number(form.price_per_unit) : undefined
         };
         try {
             if (editingId) {
@@ -72,11 +60,12 @@ export default function ProductsTab() {
                         data: payload
                     })
                 );
-            } else {
-                dispatch(createProduct(payload));
-            }
-            setForm(initialForm);
+            } else dispatch(createProduct(payload));
+
+            load();
+
             setEditingId(null);
+            setForm(initialForm);
         } catch (err) {
             alert(err?.response?.data?.message || "Error");
         }
@@ -93,14 +82,17 @@ export default function ProductsTab() {
             actual_harvest_date: it.actual_harvest_date ? it.actual_harvest_date.substring(0, 10) : "",
             weight_unit: it.weight_unit || "",
             price_per_unit: it.price_per_unit ?? "",
-            status: it.status || "growing",
-            images: Array.isArray(it.images) ? it.images.join(", ") : ""
+            status: it.status || "growing"
         });
     };
 
     const onDelete = async (id) => {
         if (!confirm("Xóa nông sản này?")) return;
         dispatch(deleteProduct(id));
+
+        load();
+        setEditingId(null);
+        setForm(initialForm);
     };
 
     const onCancel = () => {
@@ -108,9 +100,18 @@ export default function ProductsTab() {
         setForm(initialForm);
     };
 
+    const load = async () => {
+        try {
+            setLoading(true);
+            dispatch(getProducts());
+            dispatch(getFields());
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        dispatch(getProducts());
-        dispatch(getFields());
+        load();
     }, []);
 
     return (
@@ -251,15 +252,11 @@ export default function ProductsTab() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Ảnh (URL, phân tách dấu phẩy)
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh nông sản</label>
+                                <input id="image" type="file" className={inputCls} onChange={(e) => {}} hidden />
+                                <label htmlFor="image" className={`inline-block ${inputCls}`}>
+                                    Chọn ảnh nông sản
                                 </label>
-                                <input
-                                    className={inputCls}
-                                    value={form.images}
-                                    onChange={(e) => setForm({ ...form, images: e.target.value })}
-                                    placeholder="https://..., https://..."
-                                />
                             </div>
 
                             <div>
@@ -328,7 +325,7 @@ export default function ProductsTab() {
                                                         : "bg-indigo-100 text-indigo-700")
                                                 }
                                             >
-                                                {it.status || "-"}
+                                                {status.find((status) => status.value === it.status)?.label || "-"}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">{it.price_per_unit ?? "-"}</td>

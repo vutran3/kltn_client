@@ -5,7 +5,7 @@ import { login } from "../redux/thunks/authThunk";
 import backgroundImage from "../assets/images/background.jpg";
 
 export default function SignIn() {
-    const dispath = useDispatch();
+    const dispatch = useDispatch();
     const [showPw, setShowPw] = useState(false);
     const [form, setForm] = useState({ email: "", password: "" });
     const [errors, setErrors] = useState({});
@@ -20,13 +20,13 @@ export default function SignIn() {
         return Object.keys(err).length === 0;
     };
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault();
         if (!validate()) return;
-        // TODO: call your API here
-        dispath(login());
-        console.log("Sign in payload:", form);
-        navigate("/");
+
+        const action = await dispatch(login({ email: form.email, password: form.password }));
+        if (login.fulfilled.match(action)) window.location.href = "/";
+        else alert(action.payload || "Đăng nhập thất bại");
     };
 
     return (

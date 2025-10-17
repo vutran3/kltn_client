@@ -1,56 +1,35 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
+import { postDataApi, getDataApi } from "../../utils/fetch";
 
-export const login = createAsyncThunk("login", async () => {
+export const login = createAsyncThunk("auth/login", async ({ email, password }, { rejectWithValue }) => {
     try {
-        return new Promise((resolve, reject) => {
-            try {
-                setTimeout(() => {
-                    resolve({
-                        msg: "Đăng nhập thành công",
-                        data: {
-                            username: "tranducvu234",
-                            email: "tranducvu234@gmail.com",
-                            token: {
-                                accessToken: "AT_abc",
-                                refreshToken: "RF_abc"
-                            }
-                        }
-                    });
-                }, [1000]);
-            } catch (error) {
-                reject(error);
-            }
-        });
-    } catch (error) {
-        throw error;
+        const res = await postDataApi("/auth/login", { email, password });
+        return res.data;
+    } catch (err) {
+        const msg = err?.response?.data?.message || "Đăng nhập thất bại";
+        return rejectWithValue(msg);
     }
 });
 
-export const getUserInfo = createAsyncThunk("getUserInfo", async ({ accessToken, refreshToken }) => {
+export const registerUser = createAsyncThunk(
+    "auth/registerUser",
+    async ({ name, email, password, phone }, { rejectWithValue }) => {
+        try {
+            const res = await postDataApi("/auth/register", { name, email, password, phone });
+            return res.data;
+        } catch (err) {
+            const msg = err?.response?.data?.message || "Đăng ký thất bại";
+            return rejectWithValue(msg);
+        }
+    }
+);
+
+export const getUserInfo = createAsyncThunk("auth/getUserInfo", async (_, { rejectWithValue }) => {
     try {
-        return new Promise((resolve, reject) => {
-            try {
-                if (accessToken && refreshToken) {
-                    setTimeout(() => {
-                        resolve({
-                            msg: "Lấy dữ liệu thành công",
-                            data: {
-                                username: "tranducvu234",
-                                email: "tranducvu234@gmail.com"
-                            }
-                        });
-                    }, [200]);
-                } else {
-                    resolve({
-                        msg: "Token hết hạn",
-                        data: {}
-                    });
-                }
-            } catch (error) {
-                reject(error);
-            }
-        });
-    } catch (error) {
-        throw error;
+        const res = await getDataApi("/auth/get-me");
+        return res.data;
+    } catch (err) {
+        const msg = err?.response?.data?.message || "Không thể lấy thông tin người dùng";
+        return rejectWithValue(msg);
     }
 });
