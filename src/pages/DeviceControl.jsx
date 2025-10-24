@@ -193,7 +193,7 @@ export default function DeviceControl() {
                             <div>
                                 <button
                                     onClick={scheduleAfterDelay}
-                                    className="w-32 rounded-lg bg-emerald-600 text-white  x-3 py-2 hover:bg-emerald-700"
+                                    className="w-32 rounded-lg bg-blue-600 text-white  x-3 py-2 hover:bg-blue-700"
                                 >
                                     Đặt lịch
                                 </button>
@@ -250,7 +250,7 @@ export default function DeviceControl() {
                             <div className="flex items-end">
                                 <button
                                     onClick={scheduleAt}
-                                    className="w-full rounded-lg bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700"
+                                    className="w-full rounded-lg bg-blue-600 text-white px-4 py-2 hover:bg-blue-700"
                                 >
                                     Đặt lịch
                                 </button>

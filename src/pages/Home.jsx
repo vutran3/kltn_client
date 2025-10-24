@@ -19,7 +19,6 @@ const Home = () => {
     const dispatch = useDispatch();
     const { items: myDevices, selectedId, isLoading: loadingDevices } = useSelector(selectDevice);
     const [last, setLast] = useState(null);
-    const data = useSelector(selectAuth);
     const [product, setProduct] = useState(null);
     const cropType = useMemo(() => product?.name, [product]);
     const rule = useMemo(() => RULES[cropType], [cropType]);
@@ -203,30 +202,30 @@ const Home = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <MetricCard
                         title="NHIỆT ĐỘ KHÔNG KHÍ"
-                        value={last?.airTemperature != null ? last.airTemperature.toFixed(1) : "—"}
+                        value={last?.air_temperature != null ? last.air_temperature.toFixed(1) : "—"}
                         unit="°C"
                         warning={warn.airTemp}
                     />
                     <MetricCard
                         title="ĐỘ ẨM KHÔNG KHÍ"
-                        value={last?.airHumidity != null ? last.airHumidity.toFixed(1) : "—"}
+                        value={last?.air_humidity != null ? last.air_humidity.toFixed(1) : "—"}
                         unit="%"
                         warning={warn.airHumidity}
                     />
-                    <MetricCard title="ÁNH SÁNG (RAW)" value={last?.lightRaw ?? "—"} unit="" />
+                    <MetricCard title="ÁNH SÁNG (RAW)" value={last?.light_raw ?? "—"} unit="" />
                 </div>
 
                 {/* Hàng 2: Đất + pH */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <MetricCard
                         title="NHIỆT ĐỘ ĐẤT"
-                        value={last?.soilTemperature != null ? last.soilTemperature.toFixed(1) : "—"}
+                        value={last?.soil_temperature != null ? last.soil_temperature.toFixed(1) : "—"}
                         unit="°C"
                         warning={warn.soilTemperature}
                     />
                     <MetricCard
                         title="ĐỘ ẨM ĐẤT"
-                        value={last?.soilHumidity != null ? last.soilHumidity.toFixed(1) : "—"}
+                        value={last?.soil_humidity != null ? last.soil_humidity.toFixed(1) : "—"}
                         unit="%"
                         warning={warn.soilHumidity}
                     />

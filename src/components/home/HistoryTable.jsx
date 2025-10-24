@@ -134,17 +134,17 @@ function HistoryTable() {
                             <tr key={idx} className="border-b hover:bg-gray-50">
                                 <td className="px-3 py-2">{fmtTs(row.t)}</td>
                                 <td className="px-3 py-2">
-                                    {row.airTemperature != null ? Number(row.airTemperature).toFixed(1) : "—"}
+                                    {row.airTemperature != null ? Number(row.air_temperature).toFixed(1) : "—"}
                                 </td>
                                 <td className="px-3 py-2">
-                                    {row.airHumidity != null ? Number(row.airHumidity).toFixed(1) : "—"}
+                                    {row.airHumidity != null ? Number(row.air_humidity).toFixed(1) : "—"}
                                 </td>
                                 <td className="px-3 py-2">{row.lightRaw ?? "—"}</td>
                                 <td className="px-3 py-2">
-                                    {row.soilTemperature != null ? Number(row.soilTemperature).toFixed(1) : "—"}
+                                    {row.soilTemperature != null ? Number(row.soil_temperature).toFixed(1) : "—"}
                                 </td>
                                 <td className="px-3 py-2">
-                                    {row.soilHumidity != null ? Number(row.soilHumidity).toFixed(1) : "—"}
+                                    {row.soilHumidity != null ? Number(row.soil_humidity).toFixed(1) : "—"}
                                 </td>
                                 <td className="px-3 py-2">
                                     {row.nitrogen != null ? Number(row.nitrogen).toFixed(2) : "—"}

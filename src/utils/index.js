@@ -125,8 +125,39 @@ export function computeEffectiveActive({ is_active, schedule_ms, now_ms, duratio
     return !!is_active && startedOk && notExpired;
 }
 
-function computeEndAt({ is_active, schedule_ms, now_ms, duration_ms }) {
-    if (!is_active || !duration_ms || duration_ms <= 0) return 0;
-    const start = schedule_ms && schedule_ms > 0 ? schedule_ms : now_ms;
-    return start + duration_ms;
+export const fmtVN = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return d.toLocaleString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    });
+};
+
+export function mapResults(results, page, limit) {
+    return results.map((item, idx) => {
+        const ai = item?.ai_prediction || {};
+        const originalUrl = item?.image_predetect?.image_url || "";
+        const annotatedB64 = item?.ai_prediction?.annotated_image_base64;
+        const detectedUrl = annotatedB64 ? `data:image/png;base64,${annotatedB64}` : originalUrl;
+
+        const aiMessage = item?.predicting_description || item?.ai_prediction?.prediction_text || "";
+
+        return {
+            id: item?._id || `${page}-${idx}`,
+            no: (page - 1) * (limit || 0) + idx + 1,
+            originalUrl,
+            detectedUrl,
+            capturedAt: fmtVN(item?.inspection_date),
+            aiMessage,
+            boxes: ai?.boxes || [],
+            originalSize: {
+                width: ai?.image_width || item?.image_predetect?.width || 0,
+                height: ai?.image_height || item?.image_predetect?.height || 0
+            }
+        };
+    });
 }
