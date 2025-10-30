@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import TimeFilter from "../components/data_visualization/TimeFilter";
 import MetricChart from "../components/data_visualization/MetricChart";
 import { getDataApi } from "../utils/fetch";
-import { averagePerMinute, mapApiRowsToSeries } from "../utils";
+import { averagePerDay, mapApiRowsToSeries } from "../utils";
 import { useSelector } from "react-redux";
 import { selectDevice } from "../redux/selector";
 
@@ -19,7 +19,8 @@ export default function MetricVisualizer() {
         if (selectedId)
             getDataApi(`/readings?deviceId=${selectedId}&limit=${100}&sort=${-1}`)
                 .then((res) => {
-                    const minuteRows = averagePerMinute(res.data.data.rows, { tzOffsetMinutes: 420 });
+                    console.log(res);
+                    const minuteRows = averagePerDay(res.data.data.rows, { tzOffsetMinutes: 420 });
                     setData(mapApiRowsToSeries(minuteRows));
                 })
                 .catch((err) => {
@@ -52,12 +53,13 @@ export default function MetricVisualizer() {
                     to: String(to.getTime()),
                     sort: "1"
                 }).then((res) => {
-                    const minuteRows = averagePerMinute(res.data.data.rows, { tzOffsetMinutes: 420 });
+                    console.log(res);
+                    const minuteRows = averagePerDay(res.data.data.rows, { tzOffsetMinutes: 420 });
                     setData(mapApiRowsToSeries(minuteRows));
                 });
             } else {
                 getDataApi(`/readings?deviceId=${selectedId}&limit=${100}&sort=${-1}`).then((res) => {
-                    const minuteRows = averagePerMinute(res.data.data.rows, { tzOffsetMinutes: 420 });
+                    const minuteRows = averagePerDay(res.data.data.rows, { tzOffsetMinutes: 420 });
                     setData(mapApiRowsToSeries(minuteRows));
                 });
             }
@@ -74,7 +76,7 @@ export default function MetricVisualizer() {
 
         getDataApi(`/readings?deviceId=${selectedId}&limit=${100}&sort=${-1}`)
             .then((res) => {
-                const minuteRows = averagePerMinute(res.data.data.rows, { tzOffsetMinutes: 420 });
+                const minuteRows = averagePerDay(res.data.data.rows, { tzOffsetMinutes: 420 });
                 setData(mapApiRowsToSeries(minuteRows));
             })
             .catch((err) => {
