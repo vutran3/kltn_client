@@ -1,4 +1,3 @@
-import { Bell, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import logo from "/images/logo.png";
 import NotificationBell from "../notification/NotificationBell";
@@ -7,30 +6,33 @@ import { logout } from "../../redux/slices/authSlice";
 import UserAvatar from "../common/UserAvatar";
 import { selectAuth } from "../../redux/selector";
 
-function Header() {
+
+export default function Header() {
     const dispatch = useDispatch();
     const { data } = useSelector(selectAuth);
     const [currentTime, setCurrentTime] = useState(new Date());
 
-    const onLogout = () => {
-        dispatch(logout());
-    };
+
+    const onLogout = () => dispatch(logout());
+
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
+
     return (
         <header className="bg-blue-800 text-white fixed top-0 left-0 w-full h-16 z-50">
             <div className="flex items-center justify-between h-full px-2">
-                <div className="flex items-center h-full">
+                <div className="flex items-center h-full gap-2">
                     <img src={logo} alt="logo" className="h-10/12 object-contain relative top-[2px]" />
-                    <h1 className="text-xl font-bold">HỆ THỐNG GIÁM SÁT CHẤT LƯỢNG NÔNG SẢN</h1>
+                    <h1 className="text-xl font-bold whitespace-nowrap">HỆ THỐNG GIÁM SÁT CHẤT LƯỢNG NÔNG SẢN</h1>
                 </div>
 
+
                 <div className="flex items-center space-x-4">
-                    <span className="text-lg font-mono">{currentTime.toLocaleTimeString("vi-VN")}</span>
+                    <span className="text-lg font-mono hidden sm:inline">{currentTime.toLocaleTimeString("vi-VN")}</span>
                     <div className="relative">
                         <NotificationBell />
                     </div>
@@ -48,5 +50,3 @@ function Header() {
         </header>
     );
 }
-
-export default Header;
