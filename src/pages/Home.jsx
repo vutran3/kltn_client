@@ -183,7 +183,6 @@ const Home = () => {
                     </div>
                 </div>
 
-                {/* Tên/loại cây đang theo dõi */}
                 <div className="mb-4">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-200">
                         <span className="text-xs text-gray-600">CÂY ĐANG THEO DÕI</span>

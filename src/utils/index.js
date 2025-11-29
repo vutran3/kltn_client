@@ -1,15 +1,28 @@
 const NUM_KEYS = [
+    "air_temperature",
+    "air_humidity",
+    "soil_temperature",
+    "soil_humidity",
+    "light_raw",
+    "ph",
+    "phosphorus",
+    "nitrogen",
+    "potassium",
     "airTemperature",
     "airHumidity",
     "soilTemperature",
     "soilHumidity",
-    "lightRaw",
-    "ph",
-    "phosphorus",
-    "nitrogen",
-    "potassium"
+    "lightRaw"
 ];
-
+function camelToSnake(s) {
+    let snake = s.replace(/([A-Z])/g, (match, p1, offset) => {
+        if (offset > 0) {
+            return `_${p1}`;
+        }
+        return p1;
+    });
+    return snake.toLowerCase();
+}
 export function fmtTime(d) {
     const time = d.toLocaleTimeString("vi-VN", { hour12: false, hour: "2-digit", minute: "2-digit" });
     const ddmm = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
@@ -69,19 +82,59 @@ export function averagePerMinute(rows, { tzOffsetMinutes = 420 } = {}) {
     return out;
 }
 
+export function averagePerDay(rows, { tzOffsetMinutes = 420 } = {}) {
+    const tzMs = tzOffsetMinutes * 60 * 1000;
+    const buckets = new Map();
+
+    for (const r of rows) {
+        const tMs = Date.parse(r.t);
+        const dayKey = Math.floor((tMs + tzMs) / (24 * 60 * 60 * 1000)) * (24 * 60 * 60 * 1000) - tzMs;
+
+        let acc = buckets.get(dayKey);
+        if (!acc) {
+            acc = { sum: {}, cnt: {} };
+            buckets.set(dayKey, acc);
+        }
+
+        for (const k of NUM_KEYS) {
+            const key_type_snake = camelToSnake(k);
+            const v = r[k];
+            if (typeof v === "number" && Number.isFinite(v)) {
+                acc.sum[key_type_snake] = (acc.sum[key_type_snake] ?? 0) + v;
+                acc.cnt[key_type_snake] = (acc.cnt[key_type_snake] ?? 0) + 1;
+            }
+        }
+    }
+
+    const out = [];
+    for (const [dayKey, { sum, cnt }] of buckets) {
+        const averaged = {};
+        for (const k of Object.keys(sum)) {
+            averaged[k] = sum[k] / cnt[k];
+        }
+        out.push({
+            t: new Date(dayKey).toISOString(),
+            ...averaged
+        });
+    }
+    out.sort((a, b) => Date.parse(a.t) - Date.parse(b.t));
+    return out;
+}
+
+
 export function mapApiRowsToSeries(rows) {
     const sorted = [...rows].sort((a, b) => new Date(a.t).getTime() - new Date(b.t).getTime());
     return sorted.map((r) => {
         const dt = new Date(r.t);
         return {
-            time: fmtTime(dt),
-            temp: typeof r.airTemperature === "number" ? Number(r.airTemperature.toFixed(1)) : null,
-            air: typeof r.airHumidity === "number" ? r.airHumidity : null,
-            ph: typeof r.ph === "number" ? r.airHumidity : null,
+            time: dt.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+            temp: typeof r.air_temperature === "number" ? Number(r.air_temperature.toFixed(1)) : null,
+            air: typeof r.air_humidity === "number" ? r.air_humidity : null,
+            ph: typeof r.ph === "number" ? r.ph : null,
             photpho: typeof r.phosphorus === "number" ? r.phosphorus : null,
             nitro: typeof r.nitrogen === "number" ? r.nitrogen : null,
             kali: typeof r.potassium === "number" ? r.potassium : null,
-            soilHum: typeof r.soilHumidity === "number" ? r.soilHumidity : null
+            soilHum: typeof r.soil_humidity === "number" ? r.soil_humidity : null
         };
     });
 }
