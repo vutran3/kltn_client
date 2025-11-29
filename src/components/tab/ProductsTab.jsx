@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import SectionCard from "../card/SectionCard";
 import { useDispatch, useSelector } from "react-redux";
 import { createProduct, deleteProduct, getProducts, updateProduct } from "../../redux/thunks/productThunk";
 import { selectFieldData, selectProductData } from "../../redux/selector";
 import { getFields } from "../../redux/thunks/fieldThunk";
+import { RiPrinterFill } from "react-icons/ri";
+import { FiDownload } from "react-icons/fi";
+import { X } from "lucide-react";
 
 const initialForm = {
     field: "",
@@ -30,11 +34,25 @@ const status = [
     { value: "selling", label: "Mua bán" }
 ];
 
+function QRCanvas({ qrProduct }) {
+    return (
+        <QRCodeCanvas
+            id="qrCanvas"
+            value={`${window.location.origin}/produce/${qrProduct._id}`}
+            size={220}
+            level="H"
+            includeMargin={true}
+        />
+    );
+}
+
 export default function ProductsTab() {
     const dispatch = useDispatch();
     const { items: productList } = useSelector(selectProductData);
     const { items: fieldList } = useSelector(selectFieldData);
 
+    const [qrProduct, setQrProduct] = useState(null);
+    const [showQR, setShowQR] = useState(false);
     const [form, setForm] = useState(initialForm);
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -45,6 +63,27 @@ export default function ProductsTab() {
         const s = search.toLowerCase();
         return productList.filter((it) => it.name?.toLowerCase().includes(s) || it.type?.toLowerCase().includes(s));
     }, [productList, search]);
+
+
+    const downloadQR = () => {
+        const canvas = document.getElementById("qrCanvas");
+        const url = canvas.toDataURL("image/png");
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `qr-${qrProduct._id}.png`;
+        link.click();
+    };
+
+    const printQR = () => {
+        const canvas = document.getElementById("qrCanvas");
+        const dataUrl = canvas.toDataURL("image/png");
+
+        const w = window.open("");
+        w.document.write(`<img src="${dataUrl}" style="width:250px;">`);
+        w.print();
+        w.close();
+    };
 
     const onSubmit = async (e) => {
         e.preventDefault();
@@ -253,7 +292,7 @@ export default function ProductsTab() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh nông sản</label>
-                                <input id="image" type="file" className={inputCls} onChange={(e) => {}} hidden />
+                                <input id="image" type="file" className={inputCls} onChange={(e) => { }} hidden />
                                 <label htmlFor="image" className={`inline-block ${inputCls}`}>
                                     Chọn ảnh nông sản
                                 </label>
@@ -291,6 +330,54 @@ export default function ProductsTab() {
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
+                {/* Modal hiển thị mã QR */}
+                {showQR && qrProduct && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 h-full">
+                        <div className="bg-white p-6 rounded-2xl w-[360px] shadow-2xl space-y-5 animate-fade-in">
+                            <h2 className="text-xl font-semibold text-gray-800 text-center">
+                                Mã QR - {qrProduct.name}
+                            </h2>
+
+                            {/* QR Preview */}
+                            <div className="flex justify-center">
+                                <QRCanvas qrProduct={qrProduct} />
+                            </div>
+
+                            {/* Buttons */}
+                            <div className="flex justify-between gap-2 pt-3">
+
+                                {/* PRINT */}
+                                <button
+                                    onClick={printQR}
+                                    className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition shadow-sm"
+                                >
+                                    <RiPrinterFill size={20} />
+                                    In
+                                </button>
+
+                                {/* DOWNLOAD */}
+                                <button
+                                    onClick={downloadQR}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+                                >
+                                    <FiDownload size={20} />
+                                    Tải về
+                                </button>
+
+                                {/* CLOSE */}
+                                <button
+                                    onClick={() => setShowQR(false)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition shadow-sm"
+                                >
+                                    <X size={20} />
+                                    Đóng
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+                )}
+
 
                 {/* Table */}
                 <div className="overflow-hidden bg-white rounded-2xl border border-gray-200/70 shadow-sm">
@@ -321,8 +408,8 @@ export default function ProductsTab() {
                                                     (it.status === "growing"
                                                         ? "bg-green-100 text-green-700"
                                                         : it.status === "harvesting"
-                                                        ? "bg-yellow-100 text-yellow-800"
-                                                        : "bg-indigo-100 text-indigo-700")
+                                                            ? "bg-yellow-100 text-yellow-800"
+                                                            : "bg-indigo-100 text-indigo-700")
                                                 }
                                             >
                                                 {status.find((status) => status.value === it.status)?.label || "-"}
@@ -331,6 +418,18 @@ export default function ProductsTab() {
                                         <td className="px-4 py-3">{it.price_per_unit ?? "-"}</td>
                                         <td className="px-4 py-3">{it.weight_unit ?? "-"}</td>
                                         <td className="px-4 py-3 text-right flex items-center flex-nowrap gap-2">
+                                            {it.status === "selling" && (
+                                                <button
+                                                    onClick={() => {
+                                                        setQrProduct(it);
+                                                        setShowQR(true);
+                                                    }}
+                                                    className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                                                >
+                                                    QR
+                                                </button>
+                                            )}
+
                                             <button
                                                 onClick={() => onEdit(it)}
                                                 className="px-3 py-1.5 rounded-lg border hover:bg-gray-50 cursor-pointer"

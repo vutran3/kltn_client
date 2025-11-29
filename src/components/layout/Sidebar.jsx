@@ -43,11 +43,11 @@ export default function Sidebar({ collapsed = false, onToggle }) {
                     return (
                         <Link key={name} to={link} className="block">
                             <div
-                                className={`mx-2 my-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+                                className={`mx-2 my-1 flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium transition-colors
                                 ${active ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-50 hover:text-blue-600"}`}
                                 title={collapsed ? name : undefined}
                             >
-                                <Icon size={24} />
+                                <Icon size={24} className="self-center" />
                                 <span className={`${collapsed ? "opacity-0 w-0" : "opacity-100 w-auto"} overflow-hidden transition-all duration-150`}>
                                     {name}
                                 </span>
