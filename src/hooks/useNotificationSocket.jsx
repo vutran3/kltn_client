@@ -9,7 +9,7 @@ export default function useNotificationSocket() {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        const url = "https://kltn-api-dpqj.onrender.com";
+        const url = import.meta.env.VITE_SOCKET_URL || "https://kltn-api-dpqj.onrender.com";
         const socket = io(url, { transports: ["websocket"] });
         const userId = localStorage.getItem("uid") || "user001";
         if (userId) socket.emit("auth:join", userId);
