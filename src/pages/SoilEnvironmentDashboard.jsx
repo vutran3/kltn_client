@@ -26,6 +26,7 @@ export default function SoilEnvironmentDashboard() {
     const { selectedId } = useSelector(selectDevice);
 
     const [rows, setRows] = useState([]);
+    console.log(rows);
     const [loading, setLoading] = useState(false);
 
     const [selectedCrop, setSelectedCrop] = useState("Cải xanh");
@@ -67,11 +68,11 @@ export default function SoilEnvironmentDashboard() {
         };
         return {
             ph: calc(pick("ph")),
-            soilMoist: calc(pick("soilHumidity")),
-            soilTemp: calc(pick("soilTemperature")),
-            airTemp: calc(pick("airTemperature")),
-            airHumid: calc(pick("airHumidity")),
-            light: calc(pick("lightRaw")),
+            soilMoist: calc(pick("soil_humidity")),
+            soilTemp: calc(pick("soil_temperature")),
+            airTemp: calc(pick("air_temperature")),
+            airHumid: calc(pick("air_humidity")),
+            light: calc(pick("light_raw")),
             n: calc(pick("nitrogen")),
             p: calc(pick("phosphorus")),
             k: calc(pick("potassium"))
@@ -108,14 +109,14 @@ export default function SoilEnvironmentDashboard() {
             </div>
 
             {/* KPI */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+            {/* <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
                 <KpiCard title="pH" value={stats.ph.last} unit="" band={bands.ph} />
                 <KpiCard title="Độ ẩm đất" value={stats.soilMoist.last} unit="%" band={bands.soilMoist} />
                 <KpiCard title="Nhiệt độ đất" value={stats.soilTemp.last} unit="°C" band={bands.soilTemp} />
                 <KpiCard title="Nhiệt độ KK" value={stats.airTemp.last} unit="°C" band={bands.airTemp} />
                 <KpiCard title="Độ ẩm KK" value={stats.airHumid.last} unit="%" band={bands.airHumid} />
                 <KpiCard title="Ánh sáng" value={stats.light.last} unit="lux" band={bands.light} />
-            </div>
+            </div> */}
 
             <NpkCard rows={rows} targets={npkTargets} />
 

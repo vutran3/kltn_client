@@ -3,14 +3,11 @@ import { getDevices, getMyDevices, getUnassignedDevices } from "../thunks/device
 
 const LS_KEY = "selectedDeviceId";
 
-// Đọc localStorage an toàn (tránh lỗi SSR hoặc private mode)
 function readLS(key) {
-    try {
-        return typeof window !== "undefined" ? localStorage.getItem(key) : null;
-    } catch {
-        return null;
-    }
+    const deviceId = localStorage.getItem(key);
+    return deviceId ?? "";
 }
+
 function writeLS(key, val) {
     if (val) localStorage.setItem(key, val);
     else localStorage.removeItem(key);

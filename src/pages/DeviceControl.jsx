@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { getDataApi, putDataApi } from "../utils/fetch";
 import { useSelector } from "react-redux";
 import { selectDevice } from "../redux/selector";
