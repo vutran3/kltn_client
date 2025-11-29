@@ -16,6 +16,7 @@ import { setIsLoading } from "./redux/slices/authSlice";
 import { getMyDevices } from "./redux/thunks/deviceThunk";
 import SoilEnvironmentDashboard from "./pages/SoilEnvironmentDashboard";
 import "./styles/ai-advice.css";
+import ProductDetailsDashboard from "./pages/DetailsProduct";
 
 function App() {
     const dispatch = useDispatch();
@@ -46,6 +47,7 @@ function App() {
         <>
             <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
             <Routes>
+                <Route path="/products/:productId" element={<ProductDetailsDashboard />} />
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route element={isAuthed ? <Layout /> : <SignIn />}>

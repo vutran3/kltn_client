@@ -7,8 +7,8 @@ import { fmtTs } from "../utils";
 import HistoryTable from "../components/home/HistoryTable";
 import { getProductByDeviceId } from "../redux/thunks/productThunk";
 import { useDispatch, useSelector } from "react-redux";
-import { selectAuth, selectDevice } from "../redux/selector";
 import { RULES } from "../constants";
+import { selectDevice } from "../redux/selector";
 
 const POLL_MS = Number(import.meta.env?.POLL_API_MS || 10000);
 
@@ -17,11 +17,12 @@ const inRange = (val, [min, max]) =>
 
 const Home = () => {
     const dispatch = useDispatch();
-    const { items: myDevices, selectedId, isLoading: loadingDevices } = useSelector(selectDevice);
+
     const [last, setLast] = useState(null);
     const [product, setProduct] = useState(null);
     const cropType = useMemo(() => product?.name, [product]);
     const rule = useMemo(() => RULES[cropType], [cropType]);
+    const { items: myDevices, selectedId, isLoading: loadingDevices } = useSelector(selectDevice);
 
     const fetchLast = async () => {
         const res = await getDataApi(`/readings/last?deviceId=${selectedId}`, null, { cache: "no-store" });
@@ -157,32 +158,6 @@ const Home = () => {
         <div className="flex gap-1 w-full">
             {/* Current Metrics */}
             <div className=" bg-white p-6 rounded-sm shadow-xl flex-1">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium">Thiết bị:</label>
-
-                            <select
-                                disabled={loadingDevices}
-                                value={selectedId}
-                                onChange={(e) => dispatch(setSelectedDeviceId(e.target.value))}
-                                className="border border-gray-300 rounded px-3 py-2 text-sm bg-white min-w-[260px]"
-                            >
-                                {loadingDevices && <option value="">Đang tải...</option>}
-                                {!loadingDevices && myDevices?.length === 0 && (
-                                    <option value="">— Không có thiết bị —</option>
-                                )}
-                                {!loadingDevices &&
-                                    myDevices?.map((d) => (
-                                        <option key={d._id} value={d.device_id}>
-                                            {d.device_name} ({d.device_id})
-                                        </option>
-                                    ))}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
                 <div className="mb-4">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-200">
                         <span className="text-xs text-gray-600">CÂY ĐANG THEO DÕI</span>

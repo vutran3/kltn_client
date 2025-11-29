@@ -5,7 +5,9 @@ import { TbAutomation, TbHeartSearch } from "react-icons/tb";
 import { LiaWarehouseSolid } from "react-icons/lia";
 import { MdGrass } from "react-icons/md";
 import { PanelLeftOpen, PanelLeftClose } from "lucide-react";
-
+import { useSelector } from "react-redux";
+import { selectDevice } from "../../redux/selector";
+import { setSelectedDeviceId } from "../../redux/slices/deviceSlice";
 
 const menu = [
     { Icon: HiOutlineSquares2X2, name: "Tổng quan", link: "/" },
@@ -16,26 +18,44 @@ const menu = [
     { Icon: LiaWarehouseSolid, name: "Quản lý nông sản", link: "/produce-manager" }
 ];
 
-
 export default function Sidebar({ collapsed = false, onToggle }) {
     const { pathname } = useLocation();
-
+    const { items: myDevices, selectedId, isLoading: loadingDevices } = useSelector(selectDevice);
     return (
         <aside
-            className={`${collapsed ? "w-16" : "w-60"} bg-white shadow-sm fixed top-16 left-0 h-full transition-[width] duration-200`}
+            className={`${
+                collapsed ? "w-16" : "w-60"
+            } bg-white shadow-sm fixed top-16 left-0 h-full transition-[width] duration-200`}
             aria-label="Thanh điều hướng"
         >
-            <div className={`flex items-center ${collapsed ? "justify-center" : "justify-end"} px-2 py-2 border-b border-gray-100`}>
+            <div className={`flex items-center p-2 gap-2 border-b border-gray-100`}>
+                {!collapsed && (
+                    <select
+                        disabled={loadingDevices}
+                        value={selectedId}
+                        onChange={(e) => dispatch(setSelectedDeviceId(e.target.value))}
+                        className="border border-gray-300 rounded px-3 py-2 text-sm bg-white truncate w-[280px]"
+                    >
+                        {loadingDevices && <option value="">Đang tải...</option>}
+                        {!loadingDevices && myDevices?.length === 0 && <option value="">— Không có thiết bị —</option>}
+                        {!loadingDevices &&
+                            myDevices?.map((d) => (
+                                <option key={d._id} value={d.device_id}>
+                                    {d.device_name}
+                                </option>
+                            ))}
+                    </select>
+                )}
+
                 <button
                     onClick={onToggle}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-gray-50 text-gray-700"
+                    className="flex p-2 items-center justify-center rounded-lg hover:bg-gray-50 text-gray-700"
                     aria-label={collapsed ? "Mở rộng thanh bên" : "Thu gọn thanh bên"}
                     title={collapsed ? "Mở rộng thanh bên" : "Thu gọn thanh bên"}
                 >
-                    {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+                    {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
                 </button>
             </div>
-
 
             <nav className="space-y-1 py-2">
                 {menu.map(({ Icon, name, link }) => {
@@ -43,12 +63,23 @@ export default function Sidebar({ collapsed = false, onToggle }) {
                     return (
                         <Link key={name} to={link} className="block">
                             <div
-                                className={`mx-2 my-1 flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium transition-colors
-                                ${active ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-50 hover:text-blue-600"}`}
-                                title={collapsed ? name : undefined}
+                                className={`my-2 flex items-center gap-3 rounded-lg px-2 py-3 text-base font-medium transition-colors
+                                ${
+                                    active
+                                        ? "bg-blue-50 text-blue-700"
+                                        : "text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                                }
+
+                                ${collapsed && "justify-center"}
+                                `}
+                                title={collapsed ? name : ""}
                             >
                                 <Icon size={24} className="self-center" />
-                                <span className={`${collapsed ? "opacity-0 w-0" : "opacity-100 w-auto"} overflow-hidden transition-all duration-150`}>
+                                <span
+                                    className={`${
+                                        collapsed ? "opacity-0 w-0 hidden" : "opacity-100 w-auto"
+                                    } overflow-hidden transition-all duration-150`}
+                                >
                                     {name}
                                 </span>
                             </div>

@@ -38,7 +38,7 @@ function QRCanvas({ qrProduct }) {
     return (
         <QRCodeCanvas
             id="qrCanvas"
-            value={`${window.location.origin}/produce/${qrProduct._id}`}
+            value={`${window.location.origin}/products/${qrProduct._id}`}
             size={220}
             level="H"
             includeMargin={true}
@@ -63,7 +63,6 @@ export default function ProductsTab() {
         const s = search.toLowerCase();
         return productList.filter((it) => it.name?.toLowerCase().includes(s) || it.type?.toLowerCase().includes(s));
     }, [productList, search]);
-
 
     const downloadQR = () => {
         const canvas = document.getElementById("qrCanvas");
@@ -292,7 +291,7 @@ export default function ProductsTab() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh nông sản</label>
-                                <input id="image" type="file" className={inputCls} onChange={(e) => { }} hidden />
+                                <input id="image" type="file" className={inputCls} onChange={(e) => {}} hidden />
                                 <label htmlFor="image" className={`inline-block ${inputCls}`}>
                                     Chọn ảnh nông sản
                                 </label>
@@ -345,7 +344,6 @@ export default function ProductsTab() {
 
                             {/* Buttons */}
                             <div className="flex justify-between gap-2 pt-3">
-
                                 {/* PRINT */}
                                 <button
                                     onClick={printQR}
@@ -372,12 +370,10 @@ export default function ProductsTab() {
                                     <X size={20} />
                                     Đóng
                                 </button>
-
                             </div>
                         </div>
                     </div>
                 )}
-
 
                 {/* Table */}
                 <div className="overflow-hidden bg-white rounded-2xl border border-gray-200/70 shadow-sm">
@@ -408,8 +404,8 @@ export default function ProductsTab() {
                                                     (it.status === "growing"
                                                         ? "bg-green-100 text-green-700"
                                                         : it.status === "harvesting"
-                                                            ? "bg-yellow-100 text-yellow-800"
-                                                            : "bg-indigo-100 text-indigo-700")
+                                                        ? "bg-yellow-100 text-yellow-800"
+                                                        : "bg-indigo-100 text-indigo-700")
                                                 }
                                             >
                                                 {status.find((status) => status.value === it.status)?.label || "-"}
@@ -426,7 +422,7 @@ export default function ProductsTab() {
                                                     }}
                                                     className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
                                                 >
-                                                    QR
+                                                    Tạo QR
                                                 </button>
                                             )}
 
