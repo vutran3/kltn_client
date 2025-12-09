@@ -69,11 +69,11 @@ export default function NotePicker({ groups, value = [], onChange, groupModes = 
     };
 
     return (
-        <div className="border rounded-lg p-3 bg-white max-w-full">
+        <div className="border border-gray-300 rounded-lg p-3 bg-white max-w-full">
             <div className="text-[13px] text-slate-500 mb-2">Gợi ý nhanh</div>
 
             {notice && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded mb-2">
+                <div className="text-xs text-amber-700 bg-amber-50 border border-gray-300 border-amber-200 px-2 py-1 rounded mb-2">
                     {notice}
                 </div>
             )}

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getDataApi } from "../utils/fetch";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { useParams } from "react-router-dom";
+import AiAnalysisCard from "../components/product/AiAnalysisCard";
 
 const METRIC_OPTIONS = [
     { key: "air_temperature", label: "Nhiệt độ không khí (°C)" },
@@ -12,11 +13,23 @@ const METRIC_OPTIONS = [
     { key: "light_raw", label: "Ánh sáng (raw)" }
 ];
 
+const statusColor = {
+    growing: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/40",
+    harvesting: "bg-amber-500/10 text-amber-300 border border-amber-500/40",
+    selling: "bg-sky-500/10 text-sky-300 border border-sky-500/40"
+};
+
+const statusLabel = {
+    growing: "Đang sinh trưởng",
+    harvesting: "Đang thu hoạch",
+    selling: "Đang bán"
+};
+
 function MetricCard({ title, value, unit }) {
     const isWarning = value === null || value === undefined || Number.isNaN(value);
 
     return (
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex flex-col gap-1">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex flex-col gap-1 flex-1 min-w-[140px]">
             <span className="text-[11px] text-slate-400 uppercase tracking-wide">{title}</span>
             <span className="text-lg font-semibold">
                 {isWarning ? (
@@ -38,6 +51,17 @@ function ProductDetailsDashboard() {
     const [error, setError] = useState(null);
     const { productId } = useParams();
     const [selectedHealthCheck, setSelectedHealthCheck] = useState(null);
+    const [selectedManualHealthCheck, setSelectedManualHealthCheck] = useState(null);
+    const {
+        product,
+        field,
+        healthCheck_history = [],
+        manualChecks_history = [],
+        readings,
+        ai_quality_description
+    } = data || {};
+
+    const mainImage = product?.image || "https://placehold.co/600x400?text=No+Image";
 
     useEffect(() => {
         if (!productId) return;
@@ -111,31 +135,9 @@ function ProductDetailsDashboard() {
         );
     }
 
-    const { product, field, healthCheck_history = [], readings } = data;
-
-    const mainImage =
-        (product.images && product.images[0]) ||
-        (healthCheck_history[0] &&
-            healthCheck_history[0].image_predetect &&
-            healthCheck_history[0].image_predetect.image_url) ||
-        "https://placehold.co/600x400?text=No+Image";
-
-    const statusColor = {
-        growing: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/40",
-        harvesting: "bg-amber-500/10 text-amber-300 border border-amber-500/40",
-        selling: "bg-sky-500/10 text-sky-300 border border-sky-500/40"
-    };
-
-    const statusLabel = {
-        growing: "Đang sinh trưởng",
-        harvesting: "Đang thu hoạch",
-        selling: "Đang bán"
-    };
-
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50">
             <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-                {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h1 className="text-2xl md:text-3xl font-semibold flex items-center gap-2">
@@ -187,105 +189,50 @@ function ProductDetailsDashboard() {
                     </div>
                 </div>
 
-                {/* Main grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left: Image + summary + history */}
-                    <div className="lg:col-span-1 space-y-4">
-                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
-                            <div className="aspect-video bg-slate-800">
-                                <img src={mainImage} alt={product.name} className="w-full h-full object-cover" />
-                            </div>
-                            <div className="p-4 space-y-2">
-                                <h2 className="font-semibold text-lg">Tổng quan lô rau</h2>
-                                <p className="text-sm text-slate-400">
-                                    {field.description || "Chưa có mô tả cho ruộng này."}
-                                </p>
-                                <div className="flex flex-wrap gap-2 text-xs text-slate-400 pt-1">
-                                    <span className="px-2 py-1 rounded-full bg-slate-800/80">
-                                        Thiết bị giám sát: {field.devices ? field.devices.length : 0} thiết bị
-                                    </span>
-                                    <span className="px-2 py-1 rounded-full bg-slate-800/80">
-                                        Khoảng dữ liệu: {new Date(readings.range.from).toLocaleDateString("vi-VN")} -{" "}
-                                        {new Date(readings.range.to).toLocaleDateString("vi-VN")}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Disease history */}
-                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 max-h-[340px] overflow-y-auto">
-                            <h3 className="font-semibold mb-2 text-sm">
-                                Lịch sử phát hiện bệnh ({healthCheck_history.length})
-                            </h3>
-                            {healthCheck_history.length === 0 ? (
-                                <p className="text-xs text-slate-500">
-                                    Chưa có lần kiểm tra sức khỏe nào cho lô rau này.
-                                </p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {healthCheck_history.map((hc) => (
-                                        <button
-                                            key={hc._id}
-                                            type="button"
-                                            onClick={() => setSelectedHealthCheck(hc)}
-                                            className="w-full text-left flex gap-3 text-xs bg-slate-900/80 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors cursor-pointer"
-                                        >
-                                            {hc.image_predetect && hc.image_predetect.image_url && (
-                                                <img
-                                                    src={hc.image_predetect.image_url}
-                                                    alt="health-check"
-                                                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
-                                                />
-                                            )}
-                                            <div className="space-y-1">
-                                                <div className="text-slate-300 font-medium">
-                                                    {new Date(hc.inspection_date).toLocaleString("vi-VN")}
-                                                </div>
-                                                <div className="text-slate-400 line-clamp-2">
-                                                    {hc.predicting_description || "Không có mô tả chi tiết."}
-                                                </div>
-                                                <div className="text-[10px] text-slate-500">
-                                                    Thiết bị: {hc.device_id}
-                                                </div>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-wrap gap-2 justify-between">
+                        <MetricCard
+                            title="Nhiệt độ không khí"
+                            value={latestEnv && latestEnv.air_temperature}
+                            unit="°C"
+                        />
+                        <MetricCard title="Độ ẩm không khí" value={latestEnv && latestEnv.air_humidity} unit="%" />
+                        <MetricCard title="Nhiệt độ đất" value={latestEnv && latestEnv.soil_temperature} unit="°C" />
+                        <MetricCard title="Độ ẩm đất" value={latestEnv && latestEnv.soil_humidity} unit="%" />
+                        <MetricCard title="pH đất" value={latestEnv && latestEnv.ph} unit="" />
+                        <MetricCard title="Ánh sáng" value={latestEnv && latestEnv.light_raw} unit="raw" />
                     </div>
 
-                    {/* Right: Environment + charts */}
-                    <div className="lg:col-span-2 space-y-4">
-                        {/* Environment cards */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <MetricCard
-                                title="Nhiệt độ không khí"
-                                value={latestEnv && latestEnv.air_temperature}
-                                unit="°C"
-                            />
-                            <MetricCard title="Độ ẩm không khí" value={latestEnv && latestEnv.air_humidity} unit="%" />
-                            <MetricCard
-                                title="Nhiệt độ đất"
-                                value={latestEnv && latestEnv.soil_temperature}
-                                unit="°C"
-                            />
-                            <MetricCard title="Độ ẩm đất" value={latestEnv && latestEnv.soil_humidity} unit="%" />
-                            <MetricCard title="pH đất" value={latestEnv && latestEnv.ph} unit="" />
-                            <MetricCard title="Ánh sáng" value={latestEnv && latestEnv.light_raw} unit="raw" />
-                            <MetricCard title="Nitơ (N)" value={latestEnv && latestEnv.nitrogen} unit="mg/kg" />
-                            <MetricCard title="Lân (P)" value={latestEnv && latestEnv.phosphorus} unit="mg/kg" />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+                        <div className="lg:col-span-1 flex flex-col gap-4 h-full">
+                            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-lg h-full flex flex-col">
+                                <div className="aspect-video bg-slate-800 shrink-0">
+                                    <img src={mainImage} alt={product.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="p-4 space-y-2 flex-1">
+                                    <h2 className="font-semibold text-lg">Tổng quan lô rau</h2>
+                                    <p className="text-sm text-slate-400">
+                                        {field.description || "Chưa có mô tả cho ruộng này."}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 text-xs text-slate-400 pt-1">
+                                        <span className="px-2 py-1 rounded-full bg-slate-800/80">
+                                            Thiết bị: {field.devices ? field.devices.length : 0}
+                                        </span>
+                                        <span className="px-2 py-1 rounded-full bg-slate-800/80">
+                                            Dữ liệu: {new Date(readings.range.from).toLocaleDateString("vi-VN")} -{" "}
+                                            {new Date(readings.range.to).toLocaleDateString("vi-VN")}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Chart */}
-                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 h-full min-h-[400px]">
                             <div className="flex items-center justify-between gap-3">
                                 <div>
-                                    <h2 className="font-semibold text-sm md:text-base">
-                                        Biểu đồ môi trường theo thời gian
-                                    </h2>
+                                    <h2 className="font-semibold text-sm md:text-base">Biểu đồ môi trường</h2>
                                     <p className="text-xs text-slate-500">
-                                        Dữ liệu từ thiết bị:{" "}
+                                        Thiết bị:{" "}
                                         {data.readings.devices &&
                                             data.readings.devices[0] &&
                                             data.readings.devices[0].deviceId}
@@ -304,10 +251,10 @@ function ProductDetailsDashboard() {
                                 </select>
                             </div>
 
-                            <div className="w-full h-72">
+                            <div className="w-full h-[320px]">
                                 {chartData.length === 0 ? (
                                     <div className="flex items-center justify-center h-full text-slate-500 text-sm">
-                                        Chưa có dữ liệu cảm biến trong giai đoạn này.
+                                        Chưa có dữ liệu cảm biến.
                                     </div>
                                 ) : (
                                     <ResponsiveContainer width="100%" height="100%">
@@ -345,49 +292,171 @@ function ProductDetailsDashboard() {
                             </div>
                         </div>
                     </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl w-full h-[400px] overflow-y-auto">
+                            <h3 className="font-semibold mb-2 text-sm sticky top-0 bg-slate-900/90 p-4 backdrop-blur-sm z-10 border-b border-slate-800/50">
+                                Lịch sử phát hiện bệnh ({healthCheck_history.length})
+                            </h3>
+                            {healthCheck_history.length === 0 ? (
+                                <p className="text-xs text-slate-500 p-4 text-center">Chưa có dữ liệu.</p>
+                            ) : (
+                                <div className="space-y-3 p-4 pt-0">
+                                    {healthCheck_history.map((hc) => (
+                                        <button
+                                            key={hc._id}
+                                            type="button"
+                                            onClick={() => setSelectedHealthCheck(hc)}
+                                            className="w-full text-left flex gap-3 text-xs bg-slate-950/50 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors cursor-pointer"
+                                        >
+                                            {hc.image_predetect && hc.image_predetect.image_url && (
+                                                <img
+                                                    src={hc.image_predetect.image_url}
+                                                    alt="hc"
+                                                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0 bg-slate-800"
+                                                />
+                                            )}
+                                            <div className="space-y-1 min-w-0">
+                                                <div className="text-slate-300 font-medium">
+                                                    {new Date(hc.inspection_date).toLocaleString("vi-VN")}
+                                                </div>
+                                                <div className="text-slate-400 line-clamp-2">
+                                                    {hc.predicting_description || "Không có mô tả."}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl w-full h-[400px] overflow-y-auto">
+                            <h3 className="font-semibold mb-2 text-sm sticky top-0 bg-slate-900/90 p-4 backdrop-blur-sm z-10 border-b border-slate-800/50">
+                                Lịch sử kiểm tra thủ công ({manualChecks_history.length})
+                            </h3>
+                            {manualChecks_history.length === 0 ? (
+                                <p className="text-xs text-slate-500 p-4 text-center">Chưa có dữ liệu.</p>
+                            ) : (
+                                <div className="space-y-3 p-4 pt-0">
+                                    {manualChecks_history.map((hc) => (
+                                        <button
+                                            key={hc._id}
+                                            type="button"
+                                            onClick={() => setSelectedManualHealthCheck(hc)}
+                                            className="w-full text-left flex gap-3 text-xs bg-slate-950/50 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors cursor-pointer"
+                                        >
+                                            {hc.image && (
+                                                <img
+                                                    src={`data:image/png;base64,${hc.image}`}
+                                                    alt="manual-check"
+                                                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0 bg-slate-800"
+                                                />
+                                            )}
+                                            <div className="space-y-1 min-w-0">
+                                                <div className="text-slate-300 font-medium">
+                                                    {new Date(hc.detect_date).toLocaleString("vi-VN")}
+                                                </div>
+                                                <div className="text-slate-400 line-clamp-2">
+                                                    {hc.description || "Không có mô tả."}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {ai_quality_description && (
+                        <div className="w-full">
+                            <AiAnalysisCard description={ai_quality_description} />
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* 🔥 Modal chi tiết health check */}
             {selectedHealthCheck && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-                    <div className="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl">
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 shrink-0">
                             <div>
-                                <h3 className="text-sm font-semibold text-slate-100">
-                                    Chi tiết lần kiểm tra sức khỏe cây trồng
-                                </h3>
+                                <h3 className="text-sm font-semibold text-slate-100">Chi tiết kiểm tra (AI)</h3>
                                 <p className="text-[11px] text-slate-400">
-                                    {new Date(selectedHealthCheck.inspection_date).toLocaleString("vi-VN")} • Thiết bị:{" "}
-                                    {selectedHealthCheck.device_id}
+                                    {new Date(selectedHealthCheck.inspection_date).toLocaleString("vi-VN")}
                                 </p>
                             </div>
                             <button
-                                type="button"
                                 onClick={() => setSelectedHealthCheck(null)}
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-800 text-slate-400 hover:text-white"
                             >
                                 ✕
                             </button>
                         </div>
-
-                        <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(90vh-52px)]">
-                            {/* Image */}
-                            {selectedHealthCheck.image_predetect && selectedHealthCheck.image_predetect.image_url && (
-                                <div className="w-full rounded-xl overflow-hidden border border-slate-800 bg-slate-900">
+                        <div className="p-4 space-y-4 overflow-y-auto">
+                            {selectedHealthCheck.image_predetect?.image_url && (
+                                <div className="rounded-xl overflow-hidden border border-slate-800 bg-black">
                                     <img
                                         src={selectedHealthCheck.image_predetect.image_url}
-                                        alt="health-check-detail"
-                                        className="w-full max-h-[320px] object-cover"
+                                        alt="detail"
+                                        className="w-full h-auto max-h-[400px] object-contain mx-auto"
                                     />
                                 </div>
                             )}
+                            <div>
+                                <h4 className="text-sm font-semibold text-emerald-400 mb-1">Nhận định:</h4>
+                                <p className="text-slate-300 text-sm leading-relaxed">
+                                    {selectedHealthCheck.predicting_description}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                            {/* Predicting description */}
-                            <div className="space-y-1">
-                                <h4 className="text-sm font-semibold text-slate-100">Nhận định ban đầu</h4>
-                                <p className="text-sm text-slate-300 leading-relaxed">
-                                    {selectedHealthCheck.predicting_description || "Không có mô tả chi tiết."}
+            {selectedManualHealthCheck && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 shrink-0">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-100">Chi tiết kiểm tra (Thủ công)</h3>
+                                <p className="text-[11px] text-slate-400">
+                                    {new Date(selectedManualHealthCheck.detect_date).toLocaleString("vi-VN")}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedManualHealthCheck(null)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-800 text-slate-400 hover:text-white"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="p-4 space-y-4 overflow-y-auto">
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                {selectedManualHealthCheck.image && (
+                                    <div className="flex-1">
+                                        <span className="text-xs text-slate-400 block mb-1">Ảnh tải lên:</span>
+                                        <img
+                                            src={`data:image/png;base64,${selectedManualHealthCheck.image}`}
+                                            alt="uploaded"
+                                            className="rounded-lg border border-slate-800 w-full object-cover"
+                                        />
+                                    </div>
+                                )}
+                                {selectedManualHealthCheck.relative_image && (
+                                    <div className="flex-1">
+                                        <span className="text-xs text-slate-400 block mb-1">Ảnh tham chiếu:</span>
+                                        <img
+                                            src={`data:image/png;base64,${selectedManualHealthCheck.relative_image}`}
+                                            alt="relative"
+                                            className="rounded-lg border border-slate-800 w-full object-cover"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-semibold text-emerald-400 mb-1">Mô tả:</h4>
+                                <p className="text-slate-300 text-sm leading-relaxed">
+                                    {selectedManualHealthCheck.description}
                                 </p>
                             </div>
                         </div>

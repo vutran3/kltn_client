@@ -6,6 +6,8 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
     const [loading, setLoading] = useState(false);
     const [answer, setAnswer] = useState("");
 
+    const [userDescription, setUserDescription] = useState("");
+
     const payload = useMemo(() => {
         const last = rows?.length ? rows[rows.length - 1] : null;
         const timeRange = rows?.length ? `${fmtTs(rows[0].t)} → ${fmtTs(rows[rows.length - 1].t)}` : "N/A";
@@ -18,7 +20,9 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
         return {
             deviceId,
             cropType: selectedCrop,
-            contextNotes: selectedNotes, // array
+            contextNotes: selectedNotes,
+            userDescription: userDescription,
+
             timeRange,
             latest: last
                 ? {
@@ -48,7 +52,7 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
             bands,
             npkTargets
         };
-    }, [rows, deviceId, bands, npkTargets, selectedCrop, selectedNotes]);
+    }, [rows, deviceId, bands, npkTargets, selectedCrop, selectedNotes, userDescription]);
 
     const askAI = async () => {
         setLoading(true);
@@ -65,7 +69,7 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
     };
 
     return (
-        <div className="rounded-2xl border p-4 shadow-sm bg-white">
+        <div className="rounded-2xl border border-gray-300 p-4 shadow-sm bg-white">
             <div className="flex items-center justify-between mb-3">
                 <div>
                     <div className="font-semibold text-slate-800">AI tư vấn canh tác cho cây họ cải</div>
@@ -83,6 +87,18 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
                 </div>
             </div>
 
+            <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả bổ sung (Tùy chọn):</label>
+                <textarea
+                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-y"
+                    rows={3}
+                    placeholder="Ví dụ: Cây đang có dấu hiệu vàng lá, tôi vừa bón phân hôm qua..."
+                    value={userDescription}
+                    onChange={(e) => setUserDescription(e.target.value)}
+                    disabled={loading}
+                />
+            </div>
+
             <div className="flex w-full justify-end">
                 <button
                     className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 disabled:opacity-60 text-nowrap"
@@ -93,18 +109,16 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
                 </button>
             </div>
 
-            {/* Tóm tắt gửi AI (ẩn nếu muốn) */}
-            <details className="mb-3">
+            <details className="mb-3 mt-2">
                 <summary className="text-sm text-slate-600 cursor-pointer">Xem tóm tắt dữ liệu gửi AI</summary>
-                <pre className="text-[12px] whitespace-pre-wrap leading-5 bg-slate-50 p-2 rounded mt-2 overflow-auto">
+                <pre className="text-[12px] whitespace-pre-wrap leading-5 bg-slate-50 p-2 rounded mt-2 overflow-auto border border-slate-100">
                     {JSON.stringify(
                         {
                             deviceId: payload.deviceId,
                             cropType: payload.cropType,
+                            userDescription: payload.userDescription,
                             contextNotes: payload.contextNotes,
-                            timeRange: payload.timeRange,
-                            latest: payload.latest,
-                            average: payload.average
+                            latest: payload.latest
                         },
                         null,
                         2
@@ -112,7 +126,7 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
                 </pre>
             </details>
 
-            <div className="ai-advice border rounded-lg p-3 bg-white overflow-auto min-h-24">
+            <div className="ai-advice border border-gray-300 rounded-lg p-3 bg-white overflow-auto min-h-24">
                 {answer ? (
                     <div dangerouslySetInnerHTML={{ __html: answer }} />
                 ) : (
@@ -122,7 +136,7 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
                                 <div role="status">
                                     <svg
                                         aria-hidden="true"
-                                        class="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+                                        className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-emerald-600"
                                         viewBox="0 0 100 101"
                                         fill="none"
                                         xmlns="http://www.w3.org/2000/svg"
@@ -136,7 +150,7 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
                                             fill="currentFill"
                                         />
                                     </svg>
-                                    <span class="sr-only">Loading...</span>
+                                    <span className="sr-only">Loading...</span>
                                 </div>
                             </div>
                         ) : (

@@ -17,6 +17,7 @@ import { getMyDevices } from "./redux/thunks/deviceThunk";
 import SoilEnvironmentDashboard from "./pages/SoilEnvironmentDashboard";
 import "./styles/ai-advice.css";
 import ProductDetailsDashboard from "./pages/DetailsProduct";
+import ProductHistoryManager from "./pages/CareHistoryManager";
 
 function App() {
     const dispatch = useDispatch();
@@ -57,6 +58,7 @@ function App() {
                     <Route path="/env-quality-check" element={<SoilEnvironmentDashboard />} />
                     <Route path="/device-controller" element={<DeviceControl />} />
                     <Route path="/produce-manager" element={<ProduceManager />} />
+                    <Route path="/product-history" element={<ProductHistoryManager />} />
                     <Route path="*" element={<ProduceManager />} />
                 </Route>
             </Routes>

@@ -50,7 +50,6 @@ const deviceSlice = createSlice({
         builder.addCase(getDevices.fulfilled, (state, action) => {
             state.isLoading = false;
             const payload = action.payload || {};
-            console.log(payload);
             state.items = payload.items || payload.data || [];
             state.pagination = payload.pagination || null;
 

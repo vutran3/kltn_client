@@ -26,7 +26,6 @@ export default function SoilEnvironmentDashboard() {
     const { selectedId } = useSelector(selectDevice);
 
     const [rows, setRows] = useState([]);
-    console.log(rows);
     const [loading, setLoading] = useState(false);
 
     const [selectedCrop, setSelectedCrop] = useState("Cải xanh");
@@ -83,7 +82,7 @@ export default function SoilEnvironmentDashboard() {
     const { bands, npkTargets } = CROP_PRESETS[selectedCrop] || {};
 
     return (
-        <div className="p-6 lg:p-6 space-y-6 bg-white">
+        <div className="p-6 lg:p-6 space-y-6 bg-white rounded-lg">
             {/* Header + chọn giống */}
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
@@ -138,11 +137,6 @@ export default function SoilEnvironmentDashboard() {
                 selectedCrop={selectedCrop}
                 selectedNotes={selectedNotes}
             />
-
-            {/* Lịch sử */}
-            <div className="border rounded-xl p-4">
-                <HistoryTable />
-            </div>
         </div>
     );
 }

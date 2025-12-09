@@ -22,7 +22,7 @@ const Home = () => {
     const [product, setProduct] = useState(null);
     const cropType = useMemo(() => product?.name, [product]);
     const rule = useMemo(() => RULES[cropType], [cropType]);
-    const { items: myDevices, selectedId, isLoading: loadingDevices } = useSelector(selectDevice);
+    const { selectedId } = useSelector(selectDevice);
 
     const fetchLast = async () => {
         const res = await getDataApi(`/readings/last?deviceId=${selectedId}`, null, { cache: "no-store" });

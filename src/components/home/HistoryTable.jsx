@@ -34,7 +34,7 @@ function HistoryTable() {
     const [filterFrom, setFilterFrom] = useState("");
     const [filterTo, setFilterTo] = useState("");
     const [history, setHistory] = useState([]);
-    console.log(history);
+
     const loadData = async (did, { useFilter = false } = {}) => {
         let rows = [];
         try {
@@ -93,28 +93,28 @@ function HistoryTable() {
                 </div>
 
                 <button
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-nowrap"
+                    className="bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-900 text-nowrap"
                     onClick={() => loadData(selectedId, { useFilter: true })}
                 >
                     LỌC DỮ LIỆU
                 </button>
 
                 <button
-                    className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 text-nowrap"
+                    className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800 text-nowrap"
                     onClick={() => handleExportExcel(history, selectedId)}
                 >
                     XUẤT EXCEL
                 </button>
 
-                <button className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onClick={resetFilter}>
-                    RESET
+                <button className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800" onClick={resetFilter}>
+                    LÀM MỚI
                 </button>
             </div>
 
             {/* Data Table */}
             <div className="overflow-auto max-h-[600px] w-full border border-gray-300">
                 <table className="w-full text-sm min-h-52">
-                    <thead className="bg-blue-600 text-white sticky top-0">
+                    <thead className="bg-blue-700 text-white sticky top-0">
                         <tr>
                             <th className="px-3 py-2 text-left">Thời gian</th>
                             <th className="px-3 py-2 text-left">Nhiệt độ</th>

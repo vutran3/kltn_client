@@ -6,15 +6,12 @@ export default function TimeFilter({ onFilter, onReset }) {
     const [to, setTo] = useState("");
 
     return (
-        <div className="w-full rounded-2xl bg-white/90 shadow p-4 md:p-6 border border-slate-200">
-            <h2 className="text-center text-xl md:text-2xl font-semibold tracking-wide text-slate-800">
-                BỘ LỌC THỜI GIAN
-            </h2>
+        <div className="w-full rounded-2xl bg-white/90 shadow p-4 border border-slate-200">
+            <h2 className="text-left text-base font-semibold tracking-wide text-slate-800">BỘ LỌC THỜI GIAN</h2>
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-
-                <div className="lg:col-span-5">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Từ ngày</label>
+            <div className="mt-4 flex gap-3 items-end flex-wrap">
+                <div className="flex gap-2 items-center flex-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1 text-nowrap">Từ ngày:</label>
                     <input
                         type="datetime-local"
                         value={from}
@@ -23,8 +20,8 @@ export default function TimeFilter({ onFilter, onReset }) {
                     />
                 </div>
 
-                <div className="lg:col-span-5">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Đến ngày</label>
+                <div className="flex gap-2 items-center flex-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1 text-nowrap">Đến ngày:</label>
                     <input
                         type="datetime-local"
                         value={to}
@@ -34,7 +31,7 @@ export default function TimeFilter({ onFilter, onReset }) {
                     />
                 </div>
 
-                <div className="lg:col-span-2">
+                <div className="">
                     <div className="flex flex-col md:flex-row gap-2">
                         <button
                             onClick={() => onFilter(from, to)}
@@ -53,9 +50,7 @@ export default function TimeFilter({ onFilter, onReset }) {
                             }}
                             className="flex-1 min-w-0 inline-flex items-center justify-center h-10 md:h-11 px-3 md:px-4 rounded-xl bg-white text-slate-700 border border-slate-300 font-medium text-sm md:text-base hover:bg-slate-50 active:bg-slate-100 transition-colors gap-2"
                         >
-                            <RotateCcw size={20}
-                                absoluteStrokeWidth
-                                className="block shrink-0" />
+                            <RotateCcw size={20} absoluteStrokeWidth className="block shrink-0" />
                             <span className="">Reset</span>
                         </button>
                     </div>

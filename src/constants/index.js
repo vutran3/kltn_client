@@ -1,3 +1,17 @@
+export const MAPPING_CRUCIFEROUS_PLANTS = {
+    BOK_CHOY: "Cải Thìa",
+    CABBAGE: "Bắp Cải",
+    BROCCOLI: "Bông cải xanh",
+    CAULIFLOWER: "Bông cải trắng",
+    MUSTARD_GREENS: "Cải bẹ xanh",
+    NAPA_CABBAGE: "Cải Thảo",
+    CROWN_DAISY_GREENS: "Cải cúc",
+    CHOY_SUM: "Cải ngọt",
+    PAK_CHOI: "Cải bẹ trắng"
+};
+
+export const CRUCIFEROUS_PLANTS = Object.keys(MAPPING_CRUCIFEROUS_PLANTS);
+
 export const RULES = {
     "Cải Thìa": {
         temperature: [15, 25],
@@ -105,7 +119,7 @@ export const CROP_PRESETS = {
         },
         npkTargets: { n: { low: 350, high: 750 }, p: { low: 250, high: 600 }, k: { low: 250, high: 700 } }
     },
-    "Cải xoăn (Kale)": {
+    "Cải xoăn": {
         bands: {
             ph: { min: 6.0, max: 7.2 },
             soilMoist: { min: 60, max: 75 },
@@ -116,7 +130,7 @@ export const CROP_PRESETS = {
         },
         npkTargets: { n: { low: 300, high: 800 }, p: { low: 200, high: 500 }, k: { low: 200, high: 600 } }
     },
-    "Cải bó xôi (Rau chân vịt)": {
+    "Cải bó xôi": {
         bands: {
             ph: { min: 6.2, max: 7.5 },
             soilMoist: { min: 65, max: 80 },
@@ -138,7 +152,7 @@ export const CROP_PRESETS = {
         },
         npkTargets: { n: { low: 300, high: 700 }, p: { low: 200, high: 600 }, k: { low: 250, high: 700 } }
     },
-    "Cải bẹ trắng (Pakchoi)": {
+    "Cải bẹ trắng": {
         bands: {
             ph: { min: 6.0, max: 7.5 },
             soilMoist: { min: 65, max: 80 },

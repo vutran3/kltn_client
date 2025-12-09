@@ -19,7 +19,12 @@ import QualityTable from "../components/quality_check/QualityTable";
 import { ImagePicker } from "../components/quality_check/ImagePicker";
 import { mapResults } from "../utils";
 import MarkdownTable from "../components/common/MarkdownTable";
-import { clearManualHistory, loadManualHistory, saveManualHistoryItem } from "../utils/manualHistory";
+import {
+    clearManualHistory,
+    loadManualHistory,
+    removeManualHistoryItem,
+    saveManualHistoryItem
+} from "../utils/manualHistory";
 
 // Auto Detect Tab
 function AutoDetectTab() {
@@ -122,7 +127,7 @@ function AutoDetectTab() {
     const actions = (
         <div className="flex items-center gap-2">
             <button
-                className="inline-flex items-center h-10 px-3 rounded-xl border bg-white text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center h-10 px-3 rounded-xl border border-gray-300 bg-white text-slate-700 hover:bg-slate-50"
                 onClick={() => fetchPage(page, range.from, range.to)}
             >
                 <RefreshCcw className="h-4 w-4 mr-1.5" /> Làm mới
@@ -162,6 +167,8 @@ function AutoDetectTab() {
 
 // Manual Detect
 function ManualDetectPanel() {
+    const { selectedId } = useSelector(selectDevice);
+
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState("");
     const [loading, setLoading] = useState(false);
@@ -180,6 +187,7 @@ function ManualDetectPanel() {
             setLoading(true);
             const fd = new FormData();
             fd.append("file", file);
+            fd.append("device_id", selectedId);
 
             const { data } = await postDataApi("/rag/manual-detect", fd, {
                 "Content-Type": "multipart/form-data",
@@ -232,10 +240,10 @@ function ManualDetectPanel() {
             </form>
 
             {(resultImg || resultText) && (
-                <div className="grid md:grid-cols-2 gap-4 mt-6">
+                <div className="flex gap-4 mt-6">
                     {resultImg && (
-                        <div>
-                            <div className="text-sm font-medium text-slate-800 mb-2">Ảnh kết quả</div>
+                        <div className="flex-1">
+                            <div className="text-sm font-medium text-slate-800 mb-2">Ảnh kết quả liên quan</div>
                             <img
                                 src={resultImg}
                                 alt="annotated"
@@ -244,7 +252,7 @@ function ManualDetectPanel() {
                         </div>
                     )}
                     {resultText && (
-                        <div>
+                        <div className="flex-2">
                             <div className="text-sm font-medium text-slate-800 mb-2">Mô tả / Nhận định</div>
                             <MarkdownTable>{resultText}</MarkdownTable>
                         </div>
@@ -261,7 +269,7 @@ function ManualDetectPanel() {
                             clearManualHistory();
                             setHistory([]);
                         }}
-                        className="text-xs px-3 py-1 rounded-lg border hover:bg-slate-50"
+                        className="text-xs px-3 py-1 rounded-lg border border-gray-300 hover:bg-slate-50 hover:text-red-500 cursor-pointer"
                     >
                         Xoá tất cả
                     </button>
@@ -272,7 +280,7 @@ function ManualDetectPanel() {
                 ) : (
                     <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
                         {history.map((h) => (
-                            <li key={h.id} className="border rounded-xl p-3 bg-white">
+                            <li key={h.id} className="border border-gray-300 rounded-xl p-3 bg-white">
                                 <div className="flex items-center gap-3">
                                     <img src={h.img} alt="" className="w-20 h-20 object-cover rounded-lg border" />
                                     <div className="flex-1">
@@ -285,7 +293,7 @@ function ManualDetectPanel() {
                                                     setResultText(h.advice);
                                                     window.scrollTo({ top: 0, behavior: "smooth" });
                                                 }}
-                                                className="text-xs px-3 py-1 rounded-lg border hover:bg-slate-50 cursor-pointer text-blue-600 font-semibold"
+                                                className="text-xs px-3 py-1 rounded-lg border border-gray-300 hover:bg-slate-50 cursor-pointer text-blue-600 font-semibold"
                                             >
                                                 Xem lại
                                             </button>
@@ -294,7 +302,7 @@ function ManualDetectPanel() {
                                                 onClick={() => {
                                                     setHistory(removeManualHistoryItem(h.id));
                                                 }}
-                                                className="text-xs px-3 py-1 rounded-lg border hover:bg-slate-50 cursor-pointer text-red-500 font-semibold"
+                                                className="text-xs px-3 py-1 rounded-lg border border-gray-300 hover:bg-slate-50 cursor-pointer text-red-500 font-semibold"
                                             >
                                                 Xoá
                                             </button>
@@ -481,7 +489,7 @@ export default function QualityDetect() {
         <div className="min-h-screen w-full bg-gradient-to-b from-gray-50/60 to-gray-50/100 p-4 md:p-8 space-y-6">
             {/* Tabs */}
             <div className="w-full">
-                <div className="inline-flex rounded-2xl bg-white border p-1 shadow-sm">
+                <div className="inline-flex rounded-2xl bg-white border border-gray-300 p-1 shadow-sm">
                     <button
                         onClick={() => setTab("auto")}
                         className={`px-4 h-10 rounded-xl text-sm font-medium ${
@@ -513,7 +521,6 @@ export default function QualityDetect() {
 
             {tab === "auto" && <AutoDetectTab />}
             {tab === "manual" && <ManualDetectPanel />}
-
             {tab === "data" && <UploadKnowledgePanel />}
         </div>
     );

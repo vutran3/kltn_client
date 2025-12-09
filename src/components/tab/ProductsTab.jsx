@@ -8,17 +8,19 @@ import { getFields } from "../../redux/thunks/fieldThunk";
 import { RiPrinterFill } from "react-icons/ri";
 import { FiDownload } from "react-icons/fi";
 import { X } from "lucide-react";
+import { MAPPING_CRUCIFEROUS_PLANTS } from "../../constants";
+import { FaXmark } from "react-icons/fa6";
 
 const initialForm = {
     field: "",
     name: "",
-    type: "",
     planting_date: "",
     expected_harvest_date: "",
     actual_harvest_date: "",
     weight_unit: "",
     price_per_unit: "",
-    status: "growing"
+    status: "growing",
+    image: ""
 };
 
 const inputCls =
@@ -48,9 +50,10 @@ function QRCanvas({ qrProduct }) {
 
 export default function ProductsTab() {
     const dispatch = useDispatch();
-    const { items: productList } = useSelector(selectProductData);
+    const { items: productList } = useSelector(selectProductData) || {};
     const { items: fieldList } = useSelector(selectFieldData);
 
+    const [file, setFile] = useState(null);
     const [qrProduct, setQrProduct] = useState(null);
     const [showQR, setShowQR] = useState(false);
     const [form, setForm] = useState(initialForm);
@@ -90,15 +93,20 @@ export default function ProductsTab() {
             ...form,
             price_per_unit: form.price_per_unit ? Number(form.price_per_unit) : undefined
         };
+
+        const formData = new FormData();
+        formData.append("data", JSON.stringify(payload));
+        formData.append("file", file);
+
         try {
             if (editingId) {
                 dispatch(
                     updateProduct({
                         productId: editingId,
-                        data: payload
+                        data: formData
                     })
                 );
-            } else dispatch(createProduct(payload));
+            } else dispatch(createProduct(formData));
 
             load();
 
@@ -114,13 +122,13 @@ export default function ProductsTab() {
         setForm({
             field: typeof it.field === "string" ? it.field : it.field?._id || "",
             name: it.name || "",
-            type: it.type || "",
             planting_date: it.planting_date ? it.planting_date.substring(0, 10) : "",
             expected_harvest_date: it.expected_harvest_date ? it.expected_harvest_date.substring(0, 10) : "",
             actual_harvest_date: it.actual_harvest_date ? it.actual_harvest_date.substring(0, 10) : "",
             weight_unit: it.weight_unit || "",
             price_per_unit: it.price_per_unit ?? "",
-            status: it.status || "growing"
+            status: it.status || "growing",
+            image: it.image || ""
         });
     };
 
@@ -143,6 +151,7 @@ export default function ProductsTab() {
             setLoading(true);
             dispatch(getProducts());
             dispatch(getFields());
+            setFile(null);
         } finally {
             setLoading(false);
         }
@@ -165,7 +174,7 @@ export default function ProductsTab() {
                                 <button
                                     type="button"
                                     onClick={onCancel}
-                                    className="px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                                    className="px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50 font-semibold"
                                 >
                                     Hủy
                                 </button>
@@ -173,7 +182,7 @@ export default function ProductsTab() {
                             <button
                                 form="product-form"
                                 type="submit"
-                                className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+                                className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 font-semibold"
                             >
                                 {editingId ? "Lưu thay đổi" : "Tạo mới"}
                             </button>
@@ -202,28 +211,20 @@ export default function ProductsTab() {
                                 </select>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên nông sản</label>
-                                    <input
-                                        className={inputCls}
-                                        value={form.name}
-                                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        placeholder="Dâu tây, xà lách…"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Loại nông sản
-                                    </label>
-                                    <input
-                                        className={inputCls}
-                                        value={form.type}
-                                        onChange={(e) => setForm({ ...form, type: e.target.value })}
-                                        placeholder="rau/củ/quả…"
-                                    />
-                                </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tên nông sản</label>
+                                <select
+                                    value={form.name}
+                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                    className={inputCls}
+                                >
+                                    <option value="">-- Chọn nông sản --</option>
+                                    {Object.values(MAPPING_CRUCIFEROUS_PLANTS).map((value) => (
+                                        <option key={value} value={value}>
+                                            {value}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -270,12 +271,14 @@ export default function ProductsTab() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Đơn vị cân nặng
                                     </label>
-                                    <input
+                                    <select
                                         className={inputCls}
                                         value={form.weight_unit}
                                         onChange={(e) => setForm({ ...form, weight_unit: e.target.value })}
-                                        placeholder="kg, g…"
-                                    />
+                                    >
+                                        <option value="kg">kg</option>
+                                        <option value="g">g</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Giá/đơn vị</label>
@@ -291,10 +294,36 @@ export default function ProductsTab() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh nông sản</label>
-                                <input id="image" type="file" className={inputCls} onChange={(e) => {}} hidden />
-                                <label htmlFor="image" className={`inline-block ${inputCls}`}>
-                                    Chọn ảnh nông sản
-                                </label>
+
+                                {file || form.image ? (
+                                    <div className="relative w-fit">
+                                        <button
+                                            onClick={() => (file ? setFile(null) : setForm({ ...form, image: "" }))}
+                                            className="absolute flex justify-center items-center top-1 right-1 cursor-pointer text-red-600"
+                                        >
+                                            <FaXmark />
+                                        </button>
+                                        <img
+                                            value={file ?? ""}
+                                            src={file ? URL.createObjectURL(file) : form.image}
+                                            alt="product_image"
+                                            className="h-[150px] object-contain"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <label htmlFor="image" className={`cursor-pointer inline-block ${inputCls}`}>
+                                            Chọn ảnh nông sản
+                                        </label>
+                                        <input
+                                            id="image"
+                                            type="file"
+                                            className={inputCls}
+                                            onChange={(e) => setFile(e.target.files[0])}
+                                            hidden
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             <div>
@@ -308,7 +337,7 @@ export default function ProductsTab() {
                                             onClick={() => setForm({ ...form, status: item.value })}
                                             className={segBtn + " flex-1"}
                                         >
-                                            {item.label}
+                                            <span className="font-semibold">{item.label}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -386,8 +415,7 @@ export default function ProductsTab() {
                                     <th className="px-4 py-3 text-left font-semibold text-nowrap">Trạng thái</th>
                                     <th className="px-4 py-3 text-left font-semibold text-nowrap">Giá</th>
                                     <th className="px-4 py-3 text-left font-semibold text-nowrap">Đơn vị</th>
-
-                                    <th className="px-4 py-3"></th>
+                                    <th className="px-4 py-3">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -400,7 +428,7 @@ export default function ProductsTab() {
                                         <td className="px-4 py-3 capitalize">
                                             <span
                                                 className={
-                                                    "inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium " +
+                                                    "text-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium " +
                                                     (it.status === "growing"
                                                         ? "bg-green-100 text-green-700"
                                                         : it.status === "harvesting"
@@ -411,16 +439,16 @@ export default function ProductsTab() {
                                                 {status.find((status) => status.value === it.status)?.label || "-"}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">{it.price_per_unit ?? "-"}</td>
-                                        <td className="px-4 py-3">{it.weight_unit ?? "-"}</td>
-                                        <td className="px-4 py-3 text-right flex items-center flex-nowrap gap-2">
+                                        <td className="px-4 py-3">{it.price_per_unit || "Trống"}</td>
+                                        <td className="px-4 py-3">{it.weight_unit || "Trống"}</td>
+                                        <td className="px-4 py-3 flex items-center justify-center flex-nowrap gap-2">
                                             {it.status === "selling" && (
                                                 <button
                                                     onClick={() => {
                                                         setQrProduct(it);
                                                         setShowQR(true);
                                                     }}
-                                                    className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                                                    className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 text-nowrap"
                                                 >
                                                     Tạo QR
                                                 </button>

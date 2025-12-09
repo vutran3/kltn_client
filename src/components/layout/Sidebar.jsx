@@ -2,10 +2,11 @@ import { Link, useLocation } from "react-router-dom";
 import { IoBarChartOutline } from "react-icons/io5";
 import { HiOutlineSquares2X2 } from "react-icons/hi2";
 import { TbAutomation, TbHeartSearch } from "react-icons/tb";
+import { MdHistoryEdu } from "react-icons/md";
 import { LiaWarehouseSolid } from "react-icons/lia";
 import { MdGrass } from "react-icons/md";
 import { PanelLeftOpen, PanelLeftClose } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { selectDevice } from "../../redux/selector";
 import { setSelectedDeviceId } from "../../redux/slices/deviceSlice";
 
@@ -15,12 +16,15 @@ const menu = [
     { Icon: TbAutomation, name: "Điều khiển thiết bị", link: "/device-controller" },
     { Icon: TbHeartSearch, name: "Kiểm tra nông sản", link: "/quality-check" },
     { Icon: MdGrass, name: "Kiểm tra môi trường", link: "/env-quality-check" },
-    { Icon: LiaWarehouseSolid, name: "Quản lý nông sản", link: "/produce-manager" }
+    { Icon: LiaWarehouseSolid, name: "Quản lý nông sản", link: "/produce-manager" },
+    { Icon: MdHistoryEdu, name: "Lịch sử chăm sóc", link: "/product-history" }
 ];
 
 export default function Sidebar({ collapsed = false, onToggle }) {
+    const dispatch = useDispatch();
     const { pathname } = useLocation();
     const { items: myDevices, selectedId, isLoading: loadingDevices } = useSelector(selectDevice);
+
     return (
         <aside
             className={`${
@@ -28,7 +32,7 @@ export default function Sidebar({ collapsed = false, onToggle }) {
             } bg-white shadow-sm fixed top-16 left-0 h-full transition-[width] duration-200`}
             aria-label="Thanh điều hướng"
         >
-            <div className={`flex items-center p-2 gap-2 border-b border-gray-100`}>
+            <div className={`flex items-center justify-center p-2 gap-2 border-b border-gray-100`}>
                 {!collapsed && (
                     <select
                         disabled={loadingDevices}

@@ -121,7 +121,6 @@ export function averagePerDay(rows, { tzOffsetMinutes = 420 } = {}) {
     return out;
 }
 
-
 export function mapApiRowsToSeries(rows) {
     const sorted = [...rows].sort((a, b) => new Date(a.t).getTime() - new Date(b.t).getTime());
     return sorted.map((r) => {
@@ -214,3 +213,44 @@ export function mapResults(results, page, limit) {
         };
     });
 }
+
+export const calculateVPD = (temp, hum) => {
+    if (!temp || !hum) return 0;
+    const svp = 0.6108 * Math.exp((17.27 * temp) / (temp + 237.3));
+    const avp = (hum / 100) * svp;
+    return (svp - avp).toFixed(2);
+};
+
+export const calculateDewPoint = (temp, hum) => {
+    if (!temp || !hum) return 0;
+    return (temp - (100 - hum) / 5).toFixed(1);
+};
+
+export const calculateHeatIndex = (temp, hum) => {
+    if (!temp || !hum) return 0;
+    const T = temp;
+    const R = hum;
+    const c1 = -8.78469475556;
+    const c2 = 1.61139411;
+    const c3 = 2.33854883889;
+    const c4 = -0.14611605;
+    const c5 = -0.012308094;
+    const c6 = -0.0164248277778;
+    const c7 = 0.002211732;
+    const c8 = 0.00072546;
+    const c9 = -0.000003582;
+
+    if (T < 27) return T.toFixed(1);
+
+    const HI =
+        c1 +
+        c2 * T +
+        c3 * R +
+        c4 * T * R +
+        c5 * T * T +
+        c6 * R * R +
+        c7 * T * T * R +
+        c8 * T * R * R +
+        c9 * T * T * R * R;
+    return HI.toFixed(1);
+};
