@@ -1,14 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getDataApi, postDataApi, patchDataApi, deleteDataApi } from "../../utils/fetch";
+import { useDispatch, useSelector } from "react-redux";
+import { getMyDevices } from "../../redux/thunks/deviceThunk";
+import { selectDevice } from "../../redux/selector";
 
 const initialForm = { device_id: "", device_name: "", apiKey: "", is_active: true };
 
 export default function DevicesTab() {
-    const [items, setItems] = useState([]);
+    const dispatch = useDispatch();
     const [form, setForm] = useState(initialForm);
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
+    const { items } = useSelector(selectDevice);
 
     const filtered = useMemo(() => {
         if (!search) return items;
@@ -19,10 +23,9 @@ export default function DevicesTab() {
     }, [items, search]);
 
     const load = async () => {
-        setLoading(true);
         try {
-            const res = await getDataApi("/devices", { limit: 100, page: 1 });
-            setItems(res.data?.items || res.data || []);
+            setLoading(true);
+            dispatch(getMyDevices());
         } finally {
             setLoading(false);
         }
@@ -90,7 +93,7 @@ export default function DevicesTab() {
                         className="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 border px-3 py-2"
                         value={form.device_name}
                         onChange={(e) => setForm({ ...form, device_name: e.target.value })}
-                        placeholder="Node Nhà kính"
+                        placeholder="Thiết bị giám sát"
                         required
                     />
                 </div>

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { getDataApi } from "../../utils/fetch";
 import { fmtTs, toMs } from "../../utils";
+import { useSelector } from "react-redux";
+import { selectDevice } from "../../redux/selector";
+import { handleExportExcel } from "../../utils/handleFile";
 
-const DEFAULT_DEVICE_ID = "esp32-01";
 const POLL_MS = Number(import.meta.env?.POLL_API_MS || 10000);
 const HISTORY_LIMIT = 100;
 
@@ -24,27 +26,17 @@ const fetchHistory = async ({ deviceId, limit, fromMs, toMs, sort = -1 }) => {
     const res = await getDataApi(`/readings?deviceId=${deviceId}`, params, {
         cache: "no-store"
     });
-
     return res?.data?.data?.rows ?? [];
 };
 
 function HistoryTable() {
-    const [deviceId, setDeviceId] = useState(DEFAULT_DEVICE_ID);
+    const { selectedId } = useSelector(selectDevice);
     const [filterFrom, setFilterFrom] = useState("");
     const [filterTo, setFilterTo] = useState("");
     const [history, setHistory] = useState([]);
-    const [err, setErr] = useState(null);
-    const [loading, setLoading] = useState(false);
 
     const loadData = async (did, { useFilter = false } = {}) => {
-        setErr(null);
-        setLoading(true);
         let rows = [];
-        console.log({
-            filterFrom,
-            filterTo,
-            useFilter
-        });
         try {
             if (filterFrom && filterTo && useFilter) {
                 rows = await fetchHistory({
@@ -56,26 +48,29 @@ function HistoryTable() {
             } else if (!filterFrom && !filterTo) {
                 rows = await fetchHistory({ deviceId: did, limit: HISTORY_LIMIT, sort: -1 });
             }
-
             setHistory(rows);
         } catch (e) {
-            setErr(e?.message || "Fetch error");
-        } finally {
-            setLoading(false);
+            console.log(e?.message || "Fetch error");
         }
     };
 
     const resetFilter = () => {
         setFilterFrom("");
         setFilterTo("");
-        loadData(deviceId);
+        if (selectedId) loadData(selectedId);
     };
 
     useEffect(() => {
-        loadData(deviceId);
-        const id = setInterval(() => loadData(deviceId), POLL_MS);
-        return () => clearInterval(id);
-    }, [deviceId, filterFrom, filterTo]);
+        let timerId = null;
+        if (selectedId) {
+            loadData(selectedId);
+            timerId = setInterval(() => loadData(selectedId), POLL_MS);
+        }
+        return () => {
+            if (timerId) clearInterval(timerId);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedId, filterFrom, filterTo]);
 
     return (
         <div className="bg-white rounded-lg w-full">
@@ -89,7 +84,6 @@ function HistoryTable() {
                         onChange={(e) => setFilterFrom(e.target.value)}
                         className="w-full border border-gray-300 rounded px-3 py-2"
                     />
-
                     <input
                         type="date"
                         value={filterTo}
@@ -99,28 +93,28 @@ function HistoryTable() {
                 </div>
 
                 <button
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-nowrap"
-                    onClick={() => loadData(deviceId, { useFilter: true })}
+                    className="bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-900 text-nowrap"
+                    onClick={() => loadData(selectedId, { useFilter: true })}
                 >
                     LỌC DỮ LIỆU
                 </button>
 
                 <button
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-nowrap"
-                    onClick={() => window.print()}
+                    className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800 text-nowrap"
+                    onClick={() => handleExportExcel(history, selectedId)}
                 >
-                    IN BÁO CÁO
+                    XUẤT EXCEL
                 </button>
 
-                <button className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onClick={resetFilter}>
-                    RESET
+                <button className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800" onClick={resetFilter}>
+                    LÀM MỚI
                 </button>
             </div>
 
             {/* Data Table */}
             <div className="overflow-auto max-h-[600px] w-full border border-gray-300">
                 <table className="w-full text-sm min-h-52">
-                    <thead className="bg-blue-600 text-white sticky top-0">
+                    <thead className="bg-blue-700 text-white sticky top-0">
                         <tr>
                             <th className="px-3 py-2 text-left">Thời gian</th>
                             <th className="px-3 py-2 text-left">Nhiệt độ</th>

@@ -1,22 +1,26 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getDataApi, postDataApi, patchDataApi, deleteDataApi } from "../../utils/fetch";
+import { QRCodeCanvas } from "qrcode.react";
 import SectionCard from "../card/SectionCard";
 import { useDispatch, useSelector } from "react-redux";
 import { createProduct, deleteProduct, getProducts, updateProduct } from "../../redux/thunks/productThunk";
 import { selectFieldData, selectProductData } from "../../redux/selector";
 import { getFields } from "../../redux/thunks/fieldThunk";
+import { RiPrinterFill } from "react-icons/ri";
+import { FiDownload } from "react-icons/fi";
+import { X } from "lucide-react";
+import { MAPPING_CRUCIFEROUS_PLANTS } from "../../constants";
+import { FaXmark } from "react-icons/fa6";
 
 const initialForm = {
     field: "",
     name: "",
-    type: "",
     planting_date: "",
     expected_harvest_date: "",
     actual_harvest_date: "",
     weight_unit: "",
     price_per_unit: "",
     status: "growing",
-    images: ""
+    image: ""
 };
 
 const inputCls =
@@ -28,15 +32,30 @@ const segBtn =
 
 const status = [
     { value: "growing", label: "Đang trồng" },
-    { value: "harvalueesting", label: "Thu hoạch" },
-    { value: "procesing", label: "Sơ chế" }
+    { value: "harvesting", label: "Thu hoạch" },
+    { value: "selling", label: "Mua bán" }
 ];
+
+function QRCanvas({ qrProduct }) {
+    return (
+        <QRCodeCanvas
+            id="qrCanvas"
+            value={`${window.location.origin}/products/${qrProduct._id}`}
+            size={220}
+            level="H"
+            includeMargin={true}
+        />
+    );
+}
 
 export default function ProductsTab() {
     const dispatch = useDispatch();
-    const { items: productList } = useSelector(selectProductData);
+    const { items: productList } = useSelector(selectProductData) || {};
     const { items: fieldList } = useSelector(selectFieldData);
 
+    const [file, setFile] = useState(null);
+    const [qrProduct, setQrProduct] = useState(null);
+    const [showQR, setShowQR] = useState(false);
     const [form, setForm] = useState(initialForm);
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -48,35 +67,51 @@ export default function ProductsTab() {
         return productList.filter((it) => it.name?.toLowerCase().includes(s) || it.type?.toLowerCase().includes(s));
     }, [productList, search]);
 
-    const reloadFields = () => {
-        dispatch(getFields());
+    const downloadQR = () => {
+        const canvas = document.getElementById("qrCanvas");
+        const url = canvas.toDataURL("image/png");
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `qr-${qrProduct._id}.png`;
+        link.click();
+    };
+
+    const printQR = () => {
+        const canvas = document.getElementById("qrCanvas");
+        const dataUrl = canvas.toDataURL("image/png");
+
+        const w = window.open("");
+        w.document.write(`<img src="${dataUrl}" style="width:250px;">`);
+        w.print();
+        w.close();
     };
 
     const onSubmit = async (e) => {
         e.preventDefault();
         const payload = {
             ...form,
-            price_per_unit: form.price_per_unit ? Number(form.price_per_unit) : undefined,
-            images: form.images
-                ? form.images
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                : []
+            price_per_unit: form.price_per_unit ? Number(form.price_per_unit) : undefined
         };
+
+        const formData = new FormData();
+        formData.append("data", JSON.stringify(payload));
+        formData.append("file", file);
+
         try {
             if (editingId) {
                 dispatch(
                     updateProduct({
                         productId: editingId,
-                        data: payload
+                        data: formData
                     })
                 );
-            } else {
-                dispatch(createProduct(payload));
-            }
-            setForm(initialForm);
+            } else dispatch(createProduct(formData));
+
+            load();
+
             setEditingId(null);
+            setForm(initialForm);
         } catch (err) {
             alert(err?.response?.data?.message || "Error");
         }
@@ -87,20 +122,23 @@ export default function ProductsTab() {
         setForm({
             field: typeof it.field === "string" ? it.field : it.field?._id || "",
             name: it.name || "",
-            type: it.type || "",
             planting_date: it.planting_date ? it.planting_date.substring(0, 10) : "",
             expected_harvest_date: it.expected_harvest_date ? it.expected_harvest_date.substring(0, 10) : "",
             actual_harvest_date: it.actual_harvest_date ? it.actual_harvest_date.substring(0, 10) : "",
             weight_unit: it.weight_unit || "",
             price_per_unit: it.price_per_unit ?? "",
             status: it.status || "growing",
-            images: Array.isArray(it.images) ? it.images.join(", ") : ""
+            image: it.image || ""
         });
     };
 
     const onDelete = async (id) => {
         if (!confirm("Xóa nông sản này?")) return;
         dispatch(deleteProduct(id));
+
+        load();
+        setEditingId(null);
+        setForm(initialForm);
     };
 
     const onCancel = () => {
@@ -108,9 +146,19 @@ export default function ProductsTab() {
         setForm(initialForm);
     };
 
+    const load = async () => {
+        try {
+            setLoading(true);
+            dispatch(getProducts());
+            dispatch(getFields());
+            setFile(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        dispatch(getProducts());
-        dispatch(getFields());
+        load();
     }, []);
 
     return (
@@ -126,7 +174,7 @@ export default function ProductsTab() {
                                 <button
                                     type="button"
                                     onClick={onCancel}
-                                    className="px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                                    className="px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50 font-semibold"
                                 >
                                     Hủy
                                 </button>
@@ -134,7 +182,7 @@ export default function ProductsTab() {
                             <button
                                 form="product-form"
                                 type="submit"
-                                className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+                                className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 font-semibold"
                             >
                                 {editingId ? "Lưu thay đổi" : "Tạo mới"}
                             </button>
@@ -163,28 +211,20 @@ export default function ProductsTab() {
                                 </select>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên nông sản</label>
-                                    <input
-                                        className={inputCls}
-                                        value={form.name}
-                                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        placeholder="Dâu tây, xà lách…"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Loại nông sản
-                                    </label>
-                                    <input
-                                        className={inputCls}
-                                        value={form.type}
-                                        onChange={(e) => setForm({ ...form, type: e.target.value })}
-                                        placeholder="rau/củ/quả…"
-                                    />
-                                </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tên nông sản</label>
+                                <select
+                                    value={form.name}
+                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                    className={inputCls}
+                                >
+                                    <option value="">-- Chọn nông sản --</option>
+                                    {Object.values(MAPPING_CRUCIFEROUS_PLANTS).map((value) => (
+                                        <option key={value} value={value}>
+                                            {value}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -231,12 +271,14 @@ export default function ProductsTab() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Đơn vị cân nặng
                                     </label>
-                                    <input
+                                    <select
                                         className={inputCls}
                                         value={form.weight_unit}
                                         onChange={(e) => setForm({ ...form, weight_unit: e.target.value })}
-                                        placeholder="kg, g…"
-                                    />
+                                    >
+                                        <option value="kg">kg</option>
+                                        <option value="g">g</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Giá/đơn vị</label>
@@ -251,15 +293,37 @@ export default function ProductsTab() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Ảnh (URL, phân tách dấu phẩy)
-                                </label>
-                                <input
-                                    className={inputCls}
-                                    value={form.images}
-                                    onChange={(e) => setForm({ ...form, images: e.target.value })}
-                                    placeholder="https://..., https://..."
-                                />
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh nông sản</label>
+
+                                {file || form.image ? (
+                                    <div className="relative w-fit">
+                                        <button
+                                            onClick={() => (file ? setFile(null) : setForm({ ...form, image: "" }))}
+                                            className="absolute flex justify-center items-center top-1 right-1 cursor-pointer text-red-600"
+                                        >
+                                            <FaXmark />
+                                        </button>
+                                        <img
+                                            value={file ?? ""}
+                                            src={file ? URL.createObjectURL(file) : form.image}
+                                            alt="product_image"
+                                            className="h-[150px] object-contain"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <label htmlFor="image" className={`cursor-pointer inline-block ${inputCls}`}>
+                                            Chọn ảnh nông sản
+                                        </label>
+                                        <input
+                                            id="image"
+                                            type="file"
+                                            className={inputCls}
+                                            onChange={(e) => setFile(e.target.files[0])}
+                                            hidden
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             <div>
@@ -273,7 +337,7 @@ export default function ProductsTab() {
                                             onClick={() => setForm({ ...form, status: item.value })}
                                             className={segBtn + " flex-1"}
                                         >
-                                            {item.label}
+                                            <span className="font-semibold">{item.label}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -294,6 +358,51 @@ export default function ProductsTab() {
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
+                {/* Modal hiển thị mã QR */}
+                {showQR && qrProduct && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 h-full">
+                        <div className="bg-white p-6 rounded-2xl w-[360px] shadow-2xl space-y-5 animate-fade-in">
+                            <h2 className="text-xl font-semibold text-gray-800 text-center">
+                                Mã QR - {qrProduct.name}
+                            </h2>
+
+                            {/* QR Preview */}
+                            <div className="flex justify-center">
+                                <QRCanvas qrProduct={qrProduct} />
+                            </div>
+
+                            {/* Buttons */}
+                            <div className="flex justify-between gap-2 pt-3">
+                                {/* PRINT */}
+                                <button
+                                    onClick={printQR}
+                                    className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition shadow-sm"
+                                >
+                                    <RiPrinterFill size={20} />
+                                    In
+                                </button>
+
+                                {/* DOWNLOAD */}
+                                <button
+                                    onClick={downloadQR}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+                                >
+                                    <FiDownload size={20} />
+                                    Tải về
+                                </button>
+
+                                {/* CLOSE */}
+                                <button
+                                    onClick={() => setShowQR(false)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition shadow-sm"
+                                >
+                                    <X size={20} />
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Table */}
                 <div className="overflow-hidden bg-white rounded-2xl border border-gray-200/70 shadow-sm">
@@ -306,8 +415,7 @@ export default function ProductsTab() {
                                     <th className="px-4 py-3 text-left font-semibold text-nowrap">Trạng thái</th>
                                     <th className="px-4 py-3 text-left font-semibold text-nowrap">Giá</th>
                                     <th className="px-4 py-3 text-left font-semibold text-nowrap">Đơn vị</th>
-
-                                    <th className="px-4 py-3"></th>
+                                    <th className="px-4 py-3">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -320,7 +428,7 @@ export default function ProductsTab() {
                                         <td className="px-4 py-3 capitalize">
                                             <span
                                                 className={
-                                                    "inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium " +
+                                                    "text-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium " +
                                                     (it.status === "growing"
                                                         ? "bg-green-100 text-green-700"
                                                         : it.status === "harvesting"
@@ -328,12 +436,24 @@ export default function ProductsTab() {
                                                         : "bg-indigo-100 text-indigo-700")
                                                 }
                                             >
-                                                {it.status || "-"}
+                                                {status.find((status) => status.value === it.status)?.label || "-"}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">{it.price_per_unit ?? "-"}</td>
-                                        <td className="px-4 py-3">{it.weight_unit ?? "-"}</td>
-                                        <td className="px-4 py-3 text-right flex items-center flex-nowrap gap-2">
+                                        <td className="px-4 py-3">{it.price_per_unit || "Trống"}</td>
+                                        <td className="px-4 py-3">{it.weight_unit || "Trống"}</td>
+                                        <td className="px-4 py-3 flex items-center justify-center flex-nowrap gap-2">
+                                            {it.status === "selling" && (
+                                                <button
+                                                    onClick={() => {
+                                                        setQrProduct(it);
+                                                        setShowQR(true);
+                                                    }}
+                                                    className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 text-nowrap"
+                                                >
+                                                    Tạo QR
+                                                </button>
+                                            )}
+
                                             <button
                                                 onClick={() => onEdit(it)}
                                                 className="px-3 py-1.5 rounded-lg border hover:bg-gray-50 cursor-pointer"

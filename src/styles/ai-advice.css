@@ -1,0 +1,68 @@
+.ai-advice {
+    line-height: 1.6;
+}
+
+.ai-advice h2,
+.ai-advice h3,
+.ai-advice h4 {
+    margin: 1rem 0 0.5rem;
+}
+
+.ai-advice p {
+    margin: 0.5rem 0;
+}
+
+.ai-advice ul,
+.ai-advice ol {
+    margin: 0.5rem 0 0.75rem 1.25rem;
+}
+
+.ai-advice table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0 1rem;
+    table-layout: auto;
+}
+
+.ai-advice thead th {
+    background: #f7fafc;
+    font-weight: 600;
+}
+
+.ai-advice th,
+.ai-advice td {
+    border: 1px solid #e2e8f0;
+    padding: 8px 10px;
+    vertical-align: middle;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.ai-advice tbody tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.ai-advice .ok {
+    color: #059669;
+    font-weight: 600;
+}
+
+.ai-advice .warn {
+    color: #b45309;
+    font-weight: 600;
+}
+
+.ai-advice .bad {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.ai-advice .section {
+    margin-top: 1.25rem;
+}
+
+.ai-advice .note {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 0.5rem;
+}

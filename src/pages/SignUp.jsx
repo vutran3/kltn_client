@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/images/background.jpg";
+import { registerUser } from "../redux/thunks/authThunk";
+import { useDispatch } from "react-redux";
 
 export default function SignUp() {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const [showPw, setShowPw] = useState(false);
     const [form, setForm] = useState({
         fullName: "",
@@ -25,12 +28,16 @@ export default function SignUp() {
         return Object.keys(err).length === 0;
     };
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault();
         if (!validate()) return;
-        // TODO: call your API here
-        console.log("Sign up payload:", form);
-        navigate("/signin");
+
+        const action = await dispatch(
+            registerUser({ name: form.fullName, email: form.email, password: form.password, phone: form.phone })
+        );
+
+        if (registerUser.fulfilled.match(action)) navigate("/");
+        else alert(action.payload || "Đăng ký thất bại");
     };
 
     return (

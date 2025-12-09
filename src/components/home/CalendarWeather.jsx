@@ -223,21 +223,22 @@ const CalendarWeather = () => {
                     </h3>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 h-[250px] overflow-y-auto pr-2 custom-scrollbar no-scrollbar">
                     {weatherForecast.map((forecast, index) => (
                         <div
                             key={index}
                             className={`relative overflow-hidden rounded-xl p-4 bg-gradient-to-r ${getConditionColor(
                                 forecast.condition
-                            )} text-white shadow-lg transform transition-all duration-300 hover:scale-105`}
+                            )} text-white shadow-lg transform transition-all duration-300`}
                         >
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-2">
+                                    <div className="flex items-center gap-3 mb-1">
                                         <div className="text-lg font-semibold">{forecast.date}</div>
                                         <div className="text-sm opacity-90">{forecast.day}</div>
                                     </div>
-                                    <div className="text-sm opacity-90 mb-3">{forecast.description}</div>
+
+                                    <div className="text-sm opacity-90 mb-2">{forecast.description}</div>
 
                                     <div className="flex items-center gap-4 text-sm">
                                         <div className="flex items-center gap-1">
@@ -266,7 +267,6 @@ const CalendarWeather = () => {
                                 </div>
                             </div>
 
-                            {/* Decorative elements */}
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
                             <div className="absolute bottom-0 left-0 w-20 h-20 bg-black opacity-10 rounded-full translate-y-10 -translate-x-10"></div>
                         </div>

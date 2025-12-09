@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getDataApi, postDataApi, patchDataApi, deleteDataApi } from "../../utils/fetch";
+import { postDataApi, patchDataApi, deleteDataApi } from "../../utils/fetch";
 import SectionCard from "../card/SectionCard";
 import { useDispatch, useSelector } from "react-redux";
-import { selectDeviceData, selectFieldData } from "../../redux/selector";
+import { selectDevice, selectFieldData } from "../../redux/selector";
 import { getFields } from "../../redux/thunks/fieldThunk";
-import { getDevices } from "../../redux/thunks/deviceThunk";
+import { getDevices, getUnassignedDevices } from "../../redux/thunks/deviceThunk";
 
 const initialForm = {
     name: "",
@@ -22,12 +22,11 @@ const inputCls =
 export default function FieldsTab() {
     const dispatch = useDispatch();
     const { items: fieldList } = useSelector(selectFieldData);
-    const { items: deviceList } = useSelector(selectDeviceData);
+    const { unassigned: deviceList } = useSelector(selectDevice);
     const [form, setForm] = useState(initialForm);
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-
     const filtered = useMemo(() => {
         if (!search) return fieldList;
         const s = search.toLowerCase();
@@ -42,13 +41,13 @@ export default function FieldsTab() {
             established_date: form.established_date || undefined
         };
         try {
-            if (editingId) {
-                await patchDataApi(`/fields/${editingId}`, payload);
-            } else {
-                await postDataApi("/fields", payload);
-            }
+            if (editingId) await patchDataApi(`/fields/${editingId}`, payload);
+            else await postDataApi("/fields", payload);
+
             setForm(initialForm);
             setEditingId(null);
+
+            await load();
         } catch (err) {
             alert(err?.response?.data?.message || "Error");
         }
@@ -69,7 +68,12 @@ export default function FieldsTab() {
 
     const onDelete = async (id) => {
         if (!confirm("Xóa nơi trồng này?")) return;
+
         await deleteDataApi(`/fields/${id}`);
+        await load();
+
+        setForm(initialForm);
+        setEditingId(null);
     };
 
     const onCancel = () => {
@@ -85,10 +89,18 @@ export default function FieldsTab() {
         });
     };
 
+    const load = async () => {
+        try {
+            setLoading(true);
+            dispatch(getFields());
+            dispatch(getUnassignedDevices());
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        dispatch(getFields());
-        dispatch(getDevices());
-        setLoading(false);
+        load();
     }, []);
 
     return (

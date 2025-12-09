@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { getUserInfo, login } from "../thunks/authThunk";
+import { getUserInfo, login, registerUser } from "../thunks/authThunk";
 
 const initialState = {
     data: {},
@@ -18,24 +18,66 @@ const authSlice = createSlice({
             state.data = {};
             state.error = null;
             state.isLoading = false;
+
             localStorage.removeItem("accessToken");
             localStorage.removeItem("refreshToken");
-            window.location.reload();
+            localStorage.removeItem("userId");
+
+            window.location.href = "/";
         }
     },
     extraReducers: (builder) => {
+        // LOGIN
+        builder.addCase(login.pending, (state) => {
+            state.isLoading = true;
+            state.error = null;
+        });
         builder.addCase(login.fulfilled, (state, action) => {
-            state.data = action.payload.data;
-            const {
-                token: { accessToken, refreshToken }
-            } = action.payload.data;
+            state.isLoading = false;
+            state.error = null;
 
-            localStorage.setItem("accessToken", accessToken);
-            localStorage.setItem("refreshToken", refreshToken);
+            const { user, token } = action.payload.data;
+            state.data = user;
+
+            localStorage.setItem("accessToken", token.accessToken);
+            localStorage.setItem("refreshToken", token.refreshToken);
+            localStorage.setItem("userId", user?._id || user?.id || "");
+        });
+        builder.addCase(login.rejected, (state, action) => {
+            state.isLoading = false;
+            state.error = action.payload || "Đăng nhập thất bại";
+        });
+
+        // REGISTER
+        builder.addCase(registerUser.pending, (state) => {
+            state.isLoading = true;
+            state.error = null;
+        });
+        builder.addCase(registerUser.fulfilled, (state, action) => {
+            state.isLoading = false;
+            const { user, token } = action.payload.data;
+            state.data = user;
+
+            localStorage.setItem("accessToken", token.accessToken);
+            localStorage.setItem("refreshToken", token.refreshToken);
+            localStorage.setItem("userId", user?._id || user?.id || "");
+        });
+        builder.addCase(registerUser.rejected, (state, action) => {
+            state.isLoading = false;
+            state.error = action.payload || "Đăng ký thất bại";
+        });
+
+        // GET-ME
+        builder.addCase(getUserInfo.pending, (state) => {
+            state.isLoading = true;
         });
         builder.addCase(getUserInfo.fulfilled, (state, action) => {
-            state.data = action.payload.data;
             state.isLoading = false;
+            state.data = action.payload.data || {};
+        });
+        builder.addCase(getUserInfo.rejected, (state) => {
+            state.isLoading = false;
+            state.data = {};
         });
     }
 });
