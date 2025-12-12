@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
     Droplets,
     Sprout,
@@ -9,38 +9,50 @@ import {
     Trash2,
     Edit2,
     Image as ImageIcon,
-    Search
+    UploadCloud,
+    X,
+    Loader2,
+    Filter,
+    RefreshCw,
+    ClipboardList,
+    Edit
 } from "lucide-react";
 
-// Import các hàm helper của bạn
-// Giả sử file api helper nằm ở thư mục cha utils hoặc services
 import { getDataApi, postDataApi, patchDataApi, deleteDataApi } from "../utils/fetch";
+import { useSelector } from "react-redux";
+import { selectDevice } from "../redux/selector";
 
-// Endpoint cơ sở (giả sử axios config base URL chưa bao gồm path này)
 const ENDPOINT = "/product-history";
 
-// Helper map màu sắc và icon (Giữ nguyên)
 const getProcessTypeConfig = (type) => {
     switch (type?.toLowerCase()) {
         case "watering":
-            return { color: "bg-blue-100 text-blue-600", icon: <Droplets size={18} />, label: "Tưới nước" };
+            return { color: "bg-blue-100 text-blue-700", icon: <Droplets size={16} />, label: "Tưới nước" };
         case "fertilizing":
-            return { color: "bg-amber-100 text-amber-600", icon: <Sprout size={18} />, label: "Bón phân" };
+            return { color: "bg-amber-100 text-amber-700", icon: <Sprout size={16} />, label: "Bón phân" };
         case "pesticide":
-            return { color: "bg-red-100 text-red-600", icon: <Bug size={18} />, label: "Phun thuốc" };
+            return { color: "bg-red-100 text-red-700", icon: <Bug size={16} />, label: "Phun thuốc" };
         case "pruning":
-            return { color: "bg-green-100 text-green-600", icon: <Scissors size={18} />, label: "Cắt tỉa" };
+            return { color: "bg-green-100 text-green-700", icon: <Scissors size={16} />, label: "Cắt tỉa" };
         default:
-            return { color: "bg-gray-100 text-gray-600", icon: <Calendar size={18} />, label: type || "Khác" };
+            return { color: "bg-gray-100 text-gray-700", icon: <Calendar size={16} />, label: "Hoạt động khác" };
     }
 };
 
 const ProductHistoryManager = () => {
     const [histories, setHistories] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [deviceId, setDeviceId] = useState("esp32-01");
+    const [submitting, setSubmitting] = useState(false);
+
+    const { selectedId: deviceId } = useSelector(selectDevice);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentEdit, setCurrentEdit] = useState(null);
+    const [selectedFile, setSelectedFile] = useState(null);
+
+    const [isDragging, setIsDragging] = useState(false);
+
+    const [filterType, setFilterType] = useState("ALL");
+    const [filterDate, setFilterDate] = useState("");
 
     const [formData, setFormData] = useState({
         processType: "WATERING",
@@ -49,55 +61,101 @@ const ProductHistoryManager = () => {
         image: ""
     });
 
-    // --- API HANDLERS (ĐÃ CẬP NHẬT) ---
-
     const fetchHistory = async () => {
         setLoading(true);
         try {
-            // Sử dụng getDataApi: params được truyền vào đối tượng thứ 2
             const res = await getDataApi(ENDPOINT, {
                 device_id: deviceId,
-                sort: "ctime"
+                sort: "ctime" // Sắp xếp mới nhất
             });
-
-            // Axios trả về res, data thực tế nằm trong res.data.metadata
             if (res.data?.metadata?.results) {
                 setHistories(res.data.metadata.results);
             }
         } catch (error) {
             console.error("Lỗi tải dữ liệu:", error);
-            // Có thể thêm toast notification lỗi ở đây
         } finally {
             setLoading(false);
         }
     };
 
+    const filteredHistories = useMemo(() => {
+        return histories.filter((item) => {
+            const matchType = filterType === "ALL" || item.processType === filterType;
+            const itemDate = item.process_date?.split("T")[0];
+            const matchDate = !filterDate || itemDate === filterDate;
+            return matchType && matchDate;
+        });
+    }, [histories, filterType, filterDate]);
+
+    const processFile = (file) => {
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            alert("Vui lòng chỉ chọn file hình ảnh!");
+            return;
+        }
+        setSelectedFile(file);
+        setFormData((prev) => ({ ...prev, image: URL.createObjectURL(file) }));
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        processFile(file);
+    };
+
+    const handleDragOver = useCallback((e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e) => {
+        e.preventDefault();
+        setIsDragging(false);
+    }, []);
+
+    const handleDrop = useCallback((e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            processFile(files[0]);
+            e.dataTransfer.clearData();
+        }
+    }, []);
+
+    const handleRemoveImage = () => {
+        setSelectedFile(null);
+        setFormData({ ...formData, image: "" });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmitting(true);
+
+        const data = new FormData();
+        data.append("processType", formData.processType);
+        data.append("process_date", formData.process_date);
+        data.append("notes", formData.notes);
+
+        if (!currentEdit && deviceId) data.append("device_id", deviceId);
+        if (selectedFile) data.append("file", selectedFile);
+
         try {
-            if (currentEdit) {
-                // --- UPDATE (PATCH) ---
-                // Patch không cần gửi device_id header theo yêu cầu cũ, chỉ body
-                await patchDataApi(`${ENDPOINT}/${currentEdit._id}`, formData);
-            } else {
-                // --- CREATE (POST) ---
-                // Backend yêu cầu header "device_id" khi tạo mới
-                // postDataApi(uri, data, headers)
-                await postDataApi(ENDPOINT, formData, { device_id: deviceId });
-            }
+            if (currentEdit) await patchDataApi(`${ENDPOINT}/${currentEdit._id}`, data);
+            else await postDataApi(ENDPOINT, data, { device_id: deviceId });
 
             setIsModalOpen(false);
-            fetchHistory(); // Refresh list
+            fetchHistory();
             resetForm();
         } catch (error) {
             console.error("Lỗi lưu dữ liệu:", error);
+        } finally {
+            setSubmitting(false);
         }
     };
 
     const handleDelete = async (id) => {
         if (!window.confirm("Bạn có chắc muốn xóa lịch sử này?")) return;
         try {
-            // --- DELETE ---
             await deleteDataApi(`${ENDPOINT}/${id}`);
             fetchHistory();
         } catch (error) {
@@ -105,13 +163,20 @@ const ProductHistoryManager = () => {
         }
     };
 
-    // --- EFFECTS & HELPERS ---
     useEffect(() => {
         if (deviceId) fetchHistory();
     }, [deviceId]);
 
+    useEffect(() => {
+        return () => {
+            if (selectedFile && formData.image?.startsWith("blob:")) URL.revokeObjectURL(formData.image);
+        };
+    }, [selectedFile]);
+
     const resetForm = () => {
         setCurrentEdit(null);
+        setSelectedFile(null);
+        setIsDragging(false);
         setFormData({
             processType: "WATERING",
             process_date: new Date().toISOString().slice(0, 16),
@@ -122,6 +187,7 @@ const ProductHistoryManager = () => {
 
     const openEdit = (item) => {
         setCurrentEdit(item);
+        setSelectedFile(null);
         setFormData({
             processType: item.processType,
             process_date: new Date(item.process_date).toISOString().slice(0, 16),
@@ -131,138 +197,214 @@ const ProductHistoryManager = () => {
         setIsModalOpen(true);
     };
 
-    // --- RENDER (GIỮ NGUYÊN UI) ---
     return (
-        <div className="min-h-screen  bg-white p-4 md:p-8 font-sans text-slate-800 rounded-lg">
-            <div className="max-w-4xl mx-auto">
-                {/* HEADER */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div className="min-h-screen bg-white p-4 font-sans text-slate-800 rounded-lg">
+            <div className="max-w-6xl mx-auto">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-green-800">Nhật Ký Chăm Sóc</h1>
-                        <p className="text-sm text-gray-500 mt-1">Theo dõi quá trình phát triển của nông sản</p>
+                        <h1 className="text-2xl font-semibold text-gray-900">Nhật Ký Chăm Sóc</h1>
+                        <p className="text-sm text-gray-500 mt-1">Quản lý danh sách các hoạt động nông nghiệp</p>
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
-                        <div className="relative group flex-1 md:flex-none">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                            <input
-                                type="text"
-                                value={deviceId}
-                                onChange={(e) => setDeviceId(e.target.value)}
-                                placeholder="Nhập Device ID..."
-                                className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 w-full text-sm shadow-sm"
-                            />
-                        </div>
                         <button
                             onClick={() => {
                                 resetForm();
                                 setIsModalOpen(true);
                             }}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition-all text-sm font-medium"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-all text-sm font-medium whitespace-nowrap"
                         >
-                            <Plus size={18} /> <span className="hidden sm:inline">Thêm mới</span>
+                            <Plus size={18} /> <span>Thêm mới</span>
                         </button>
                     </div>
                 </div>
 
-                {/* TIMELINE LIST */}
-                <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-300 before:to-transparent">
+                {/* Filter Bar */}
+                <div className="bg-white p-1 rounded-lg border border-gray-200 mb-6 flex flex-col sm:flex-row gap-3 items-center shadow-sm">
+                    <div className="flex items-center gap-2 text-gray-500 text-sm font-medium min-w-fit px-3 py-2">
+                        <Filter size={16} /> Bộ lọc:
+                    </div>
+
+                    <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+
+                    <select
+                        className="w-full sm:w-auto p-2 bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer hover:bg-gray-50 rounded"
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                    >
+                        <option value="ALL">Tất cả hoạt động</option>
+                        <option value="WATERING">Tưới nước</option>
+                        <option value="FERTILIZING">Bón phân</option>
+                        <option value="PESTICIDE">Phun thuốc</option>
+                        <option value="PRUNING">Cắt tỉa</option>
+                        <option value="HARVEST">Thu hoạch</option>
+                        <option value="OTHER">Khác</option>
+                    </select>
+
+                    <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+
+                    <input
+                        type="date"
+                        className="w-full sm:w-auto p-2 bg-transparent text-sm outline-none text-gray-600 cursor-pointer hover:bg-gray-50 rounded"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                    />
+
+                    {(filterType !== "ALL" || filterDate) && (
+                        <button
+                            onClick={() => {
+                                setFilterType("ALL");
+                                setFilterDate("");
+                            }}
+                            className="ml-auto mr-2 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                            title="Xóa bộ lọc"
+                        >
+                            <RefreshCw size={16} />
+                        </button>
+                    )}
+                </div>
+
+                {/* Table View */}
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                     {loading ? (
-                        <div className="text-center py-10 text-gray-400">Đang tải dữ liệu...</div>
-                    ) : histories.length === 0 ? (
-                        <div className="text-center py-10 text-gray-400 bg-white rounded-xl shadow-sm border border-gray-100 ml-10">
-                            Không tìm thấy nhật ký nào cho thiết bị này.
+                        <div className="text-center py-20 text-gray-400 flex flex-col items-center gap-3">
+                            <Loader2 className="animate-spin text-indigo-500" size={32} />
+                            <span className="text-sm font-medium">Đang tải dữ liệu...</span>
+                        </div>
+                    ) : filteredHistories.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <div className="bg-gray-50 p-4 rounded-full mb-4">
+                                <ClipboardList size={40} className="text-gray-400" />
+                            </div>
+                            <h3 className="text-gray-900 font-medium text-lg">Chưa có dữ liệu</h3>
+                            <p className="text-gray-500 text-sm mt-1 mb-6">
+                                {filterType !== "ALL" || filterDate
+                                    ? "Không tìm thấy kết quả phù hợp với bộ lọc."
+                                    : "Bắt đầu ghi lại nhật ký chăm sóc ngay hôm nay."}
+                            </p>
+                            {filterType === "ALL" && !filterDate && (
+                                <button
+                                    onClick={() => {
+                                        resetForm();
+                                        setIsModalOpen(true);
+                                    }}
+                                    className="text-indigo-600 font-medium text-sm hover:underline hover:text-indigo-800 flex items-center gap-1"
+                                >
+                                    <Plus size={16} /> Tạo nhật ký đầu tiên
+                                </button>
+                            )}
                         </div>
                     ) : (
-                        histories.map((item) => {
-                            const config = getProcessTypeConfig(item.processType);
-                            const dateObj = new Date(item.process_date);
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-gray-50/50 text-gray-600 uppercase text-xs font-semibold tracking-wider border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-4 w-48">Thời gian</th>
+                                        <th className="px-6 py-4 w-40">Hoạt động</th>
+                                        <th className="px-6 py-4">Ghi chú</th>
+                                        <th className="px-6 py-4 w-24 text-center text-nowrap">Hình ảnh</th>
+                                        <th className="px-6 py-4 w-24 text-right">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {filteredHistories.map((item) => {
+                                        const config = getProcessTypeConfig(item.processType);
+                                        const dateObj = new Date(item.process_date);
 
-                            return (
-                                <div
-                                    key={item._id}
-                                    className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active"
-                                >
-                                    {/* ICON */}
-                                    <div
-                                        className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 absolute left-0 md:left-1/2 -translate-x-1/2 md:translate-x-0 z-10 ${config.color
-                                            .replace("text", "bg")
-                                            .replace("100", "500")} text-white`}
-                                    >
-                                        {config.icon}
-                                    </div>
-
-                                    {/* CARD */}
-                                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow ml-auto md:ml-0">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-2">
-                                                <span
-                                                    className={`px-2 py-1 rounded text-xs font-semibold ${config.color}`}
-                                                >
-                                                    {config.label}
-                                                </span>
-                                                <span className="text-xs text-gray-400">
-                                                    {dateObj.toLocaleTimeString([], {
-                                                        hour: "2-digit",
-                                                        minute: "2-digit"
-                                                    })}
-                                                </span>
-                                            </div>
-
-                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => openEdit(item)}
-                                                    className="p-1 text-gray-400 hover:text-blue-500 rounded"
-                                                >
-                                                    <Edit2 size={14} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(item._id)}
-                                                    className="p-1 text-gray-400 hover:text-red-500 rounded"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <h3 className="text-gray-800 font-semibold text-lg mb-1">
-                                            {dateObj.toLocaleDateString("vi-VN", {
-                                                weekday: "long",
-                                                year: "numeric",
-                                                month: "long",
-                                                day: "numeric"
-                                            })}
-                                        </h3>
-                                        <p className="text-gray-600 text-sm leading-relaxed mb-3">
-                                            {item.notes || "Không có ghi chú."}
-                                        </p>
-                                        {item.image && (
-                                            <div className="mt-3 rounded-lg overflow-hidden h-32 w-full bg-gray-100 relative group/img">
-                                                <img
-                                                    src={item.image}
-                                                    alt="Process"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })
+                                        return (
+                                            <tr key={item._id} className="hover:bg-gray-50/50 transition-colors group">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-medium text-gray-900">
+                                                            {dateObj.toLocaleDateString("vi-VN", {
+                                                                day: "2-digit",
+                                                                month: "2-digit",
+                                                                year: "numeric"
+                                                            })}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500">
+                                                            {dateObj.toLocaleTimeString([], {
+                                                                hour: "2-digit",
+                                                                minute: "2-digit"
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span
+                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}
+                                                    >
+                                                        {config.icon}
+                                                        {config.label}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <p
+                                                        className="text-sm text-gray-600 max-w-md truncate"
+                                                        title={item.notes}
+                                                    >
+                                                        {item.notes || (
+                                                            <span className="text-gray-400 italic">
+                                                                Không có ghi chú
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    {item.image ? (
+                                                        <div className="relative h-10 w-10 mx-auto rounded overflow-hidden border border-gray-200 group/img">
+                                                            <img
+                                                                src={item.image}
+                                                                alt="Proof"
+                                                                className="h-full w-full object-cover cursor-pointer hover:scale-110 transition-transform"
+                                                                onClick={() => window.open(item.image, "_blank")}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-300">
+                                                            <ImageIcon size={20} className="mx-auto" />
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-right whitespace-nowrap">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            onClick={() => openEdit(item)}
+                                                            className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                                                            title="Chỉnh sửa"
+                                                        >
+                                                            <Edit size={16} color="orange" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(item._id)}
+                                                            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                                            title="Xóa"
+                                                        >
+                                                            <Trash2 size={16} color="red" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
             </div>
 
-            {/* MODAL FORM */}
+            {/* Modal - Giữ nguyên logic */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto no-scrollbar">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 sticky top-0 z-10">
                             <h3 className="font-bold text-lg text-gray-800">
                                 {currentEdit ? "Cập nhật hoạt động" : "Ghi nhận hoạt động mới"}
                             </h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                &times;
+                                <X size={20} />
                             </button>
                         </div>
 
@@ -270,7 +412,7 @@ const ProductHistoryManager = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Loại hoạt động</label>
                                 <select
-                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-600 outline-none"
                                     value={formData.processType}
                                     onChange={(e) => setFormData({ ...formData, processType: e.target.value })}
                                 >
@@ -287,7 +429,7 @@ const ProductHistoryManager = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian</label>
                                 <input
                                     type="datetime-local"
-                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-600 outline-none"
                                     value={formData.process_date}
                                     onChange={(e) => setFormData({ ...formData, process_date: e.target.value })}
                                 />
@@ -297,7 +439,7 @@ const ProductHistoryManager = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
                                 <textarea
                                     rows="3"
-                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-600 outline-none"
                                     placeholder="Chi tiết công việc..."
                                     value={formData.notes}
                                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -305,19 +447,66 @@ const ProductHistoryManager = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Hình ảnh (URL)</label>
-                                <div className="relative">
-                                    <ImageIcon
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                                        size={16}
-                                    />
-                                    <input
-                                        type="text"
-                                        className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                                        placeholder="https://..."
-                                        value={formData.image}
-                                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                                    />
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Hình ảnh đính kèm
+                                </label>
+                                <div
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors relative 
+                                    ${
+                                        isDragging
+                                            ? "border-indigo-500 bg-indigo-50"
+                                            : "border-gray-300 hover:bg-gray-50"
+                                    }`}
+                                >
+                                    {formData.image ? (
+                                        <div className="relative w-full">
+                                            <img
+                                                src={formData.image}
+                                                alt="Preview"
+                                                className="h-48 w-full object-cover rounded-md"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveImage}
+                                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-sm"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                            <label className="absolute bottom-2 right-2 bg-white/90 text-gray-700 px-3 py-1 rounded-md text-xs font-medium cursor-pointer hover:bg-white shadow-sm flex items-center gap-1">
+                                                <Edit2 size={12} /> Thay đổi
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={handleFileChange}
+                                                />
+                                            </label>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-1 text-center pointer-events-none">
+                                            <UploadCloud
+                                                className={`mx-auto h-12 w-12 ${
+                                                    isDragging ? "text-indigo-500" : "text-gray-400"
+                                                }`}
+                                            />
+                                            <div className="flex text-sm text-gray-600 justify-center pointer-events-auto">
+                                                <label className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500">
+                                                    <span>Tải ảnh lên</span>
+                                                    <input
+                                                        type="file"
+                                                        className="sr-only"
+                                                        accept="image/*"
+                                                        onChange={handleFileChange}
+                                                    />
+                                                </label>
+                                                <p className="pl-1">hoặc kéo thả</p>
+                                            </div>
+                                            <p className="text-xs text-gray-500">PNG, JPG tối đa 5MB</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -326,13 +515,16 @@ const ProductHistoryManager = () => {
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
                                     className="flex-1 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                                    disabled={submitting}
                                 >
                                     Hủy bỏ
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-md"
+                                    disabled={submitting}
+                                    className="flex-1 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2"
                                 >
+                                    {submitting && <Loader2 className="animate-spin" size={18} />}
                                     {currentEdit ? "Lưu thay đổi" : "Tạo mới"}
                                 </button>
                             </div>

@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getDataApi } from "../utils/fetch";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { useParams } from "react-router-dom";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import { getDataApi } from "../utils/fetch";
 import AiAnalysisCard from "../components/product/AiAnalysisCard";
+import MarkdownTable from "../components/common/MarkdownTable";
 
 const METRIC_OPTIONS = [
     { key: "air_temperature", label: "Nhiệt độ không khí (°C)" },
@@ -25,7 +26,11 @@ const statusLabel = {
     selling: "Đang bán"
 };
 
-function MetricCard({ title, value, unit }) {
+const Skeleton = ({ className }) => <div className={`animate-pulse bg-slate-800/50 rounded-xl ${className}`}></div>;
+
+function MetricCard({ title, value, unit, loading }) {
+    if (loading) return <Skeleton className="h-[74px] flex-1 min-w-[140px]" />;
+
     const isWarning = value === null || value === undefined || Number.isNaN(value);
 
     return (
@@ -33,7 +38,7 @@ function MetricCard({ title, value, unit }) {
             <span className="text-[11px] text-slate-400 uppercase tracking-wide">{title}</span>
             <span className="text-lg font-semibold">
                 {isWarning ? (
-                    <span className="text-slate-500 text-sm">Không có dữ liệu</span>
+                    <span className="text-slate-500 text-sm">--</span>
                 ) : (
                     <>
                         {Number(value).toFixed(1)} <span className="text-xs text-slate-400">{unit}</span>
@@ -45,62 +50,61 @@ function MetricCard({ title, value, unit }) {
 }
 
 function ProductDetailsDashboard() {
-    const [data, setData] = useState(null);
-    const [selectedMetric, setSelectedMetric] = useState("air_temperature");
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const { productId } = useParams();
+
+    const [infoData, setInfoData] = useState(null); // API 1: Info (Product + Field)
+    const [readingsData, setReadingsData] = useState(null); // API 2: Readings (Chart + Metrics)
+    const [logsData, setLogsData] = useState(null); // API 3: Logs (Health + Manual)
+    const [aiData, setAiData] = useState(null); // API 4: AI Analysis
+
+    const [loadingInfo, setLoadingInfo] = useState(true);
+    const [loadingReadings, setLoadingReadings] = useState(true);
+    const [loadingLogs, setLoadingLogs] = useState(true);
+    const [loadingAi, setLoadingAi] = useState(true);
+
+    const [selectedMetric, setSelectedMetric] = useState("air_temperature");
     const [selectedHealthCheck, setSelectedHealthCheck] = useState(null);
     const [selectedManualHealthCheck, setSelectedManualHealthCheck] = useState(null);
-    const {
-        product,
-        field,
-        healthCheck_history = [],
-        manualChecks_history = [],
-        readings,
-        ai_quality_description
-    } = data || {};
-
-    const mainImage = product?.image || "https://placehold.co/600x400?text=No+Image";
 
     useEffect(() => {
         if (!productId) return;
         let isMounted = true;
 
-        async function fetchDetails() {
-            try {
-                setLoading(true);
-                setError(null);
+        const fetchData = async () => {
+            getDataApi(`/products/${productId}/info`)
+                .then((res) => isMounted && setInfoData(res.data))
+                .catch((err) => console.error("Info Error:", err))
+                .finally(() => isMounted && setLoadingInfo(false));
 
-                const res = await getDataApi(`/products/${productId}/details`);
+            getDataApi(`/products/${productId}/readings`)
+                .then((res) => isMounted && setReadingsData(res.data))
+                .catch((err) => console.error("Readings Error:", err))
+                .finally(() => isMounted && setLoadingReadings(false));
 
-                if (!isMounted) return;
-                setData(res.data);
-            } catch (err) {
-                console.error("Failed to fetch product details:", err);
-                if (!isMounted) return;
-                setError(err?.response?.data?.message || err?.message || "Failed to fetch product details");
-            } finally {
-                if (isMounted) setLoading(false);
-            }
-        }
+            getDataApi(`/products/${productId}/logs`)
+                .then((res) => isMounted && setLogsData(res.data))
+                .catch((err) => console.error("Logs Error:", err))
+                .finally(() => isMounted && setLoadingLogs(false));
 
-        fetchDetails();
+            getDataApi(`/products/${productId}/ai`)
+                .then((res) => isMounted && setAiData(res.data))
+                .catch((err) => console.error("AI Error:", err))
+                .finally(() => isMounted && setLoadingAi(false));
+        };
+
+        fetchData();
 
         return () => {
             isMounted = false;
         };
     }, [productId]);
 
+    const { product, field } = infoData || {};
+
     const chartData = useMemo(() => {
-        if (!data || !data.readings || !data.readings.devices || !data.readings.devices.length) {
-            return [];
-        }
-
-        const device = data.readings.devices[0];
-        const rawReadings = device.rawReadings || [];
-
-        return rawReadings.map((r) => ({
+        if (!readingsData || !readingsData.devices || !readingsData.devices.length) return [];
+        const raw = readingsData.devices[0].rawReadings || [];
+        return raw.map((r) => ({
             time: new Date(r.t).toLocaleString("vi-VN", {
                 day: "2-digit",
                 month: "2-digit",
@@ -109,31 +113,44 @@ function ProductDetailsDashboard() {
             }),
             ...r
         }));
-    }, [data]);
+    }, [readingsData]);
 
     const latestEnv = useMemo(() => {
-        if (!data || !data.readings || !data.readings.devices || !data.readings.devices.length) {
-            return null;
-        }
-        const device = data.readings.devices[0];
-        return device.latest || null;
-    }, [data]);
+        if (!readingsData || !readingsData.summary || !readingsData.summary.length) return {};
+        return readingsData.summary[0].latest || {};
+    }, [readingsData]);
 
-    if (loading) {
+    if (loadingInfo) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-50">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-400" />
+            <div className="min-h-screen bg-slate-950 p-6 max-w-6xl mx-auto space-y-6">
+                <div className="flex justify-between items-center">
+                    <div className="space-y-2">
+                        <Skeleton className="w-64 h-8" />
+                        <Skeleton className="w-40 h-4" />
+                    </div>
+                    <Skeleton className="w-24 h-8 rounded-full" />
+                </div>
+                <div className="flex gap-4">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <Skeleton key={i} className="h-20 flex-1" />
+                    ))}
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-96">
+                    <Skeleton className="col-span-1 h-full" />
+                    <Skeleton className="col-span-2 h-full" />
+                </div>
             </div>
         );
     }
 
-    if (error || !data) {
+    if (!product)
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-950 text-red-300">
-                <p>Lỗi tải dữ liệu: {error || "Không có dữ liệu"}</p>
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center text-red-400">
+                Không tìm thấy sản phẩm
             </div>
         );
-    }
+
+    const mainImage = product.image || "https://placehold.co/600x400?text=No+Image";
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -147,9 +164,9 @@ function ProductDetailsDashboard() {
                             )}
                         </h1>
                         <p className="text-slate-400 mt-1">
-                            Ruộng: <span className="font-medium text-slate-100">{field.name}</span> • Diện tích:{" "}
+                            Ruộng: <span className="font-medium text-slate-100">{field?.name}</span> • Diện tích:{" "}
                             <span className="font-medium text-slate-100">
-                                {field.total_area ? field.total_area + " m²" : "Chưa cập nhật"}
+                                {field?.total_area ? field.total_area + " m²" : "--"}
                             </span>
                         </p>
                     </div>
@@ -162,27 +179,19 @@ function ProductDetailsDashboard() {
                         )}
                         <div className="text-xs md:text-sm text-slate-400 text-right">
                             <div>
-                                Gieo trồng:{" "}
+                                <span>Gieo:</span>
                                 <span className="text-slate-100">
                                     {product.planting_date
                                         ? new Date(product.planting_date).toLocaleDateString("vi-VN")
-                                        : "Chưa cập nhật"}
+                                        : "--"}
                                 </span>
                             </div>
                             <div>
-                                Dự kiến thu hoạch:{" "}
-                                <span className="text-slate-100">
-                                    {product.expected_harvest_date
-                                        ? new Date(product.expected_harvest_date).toLocaleDateString("vi-VN")
-                                        : "Chưa cập nhật"}
-                                </span>
-                            </div>
-                            <div>
-                                Thực tế thu hoạch:{" "}
+                                Thu hoạch (TT):{" "}
                                 <span className="text-slate-100">
                                     {product.actual_harvest_date
                                         ? new Date(product.actual_harvest_date).toLocaleDateString("vi-VN")
-                                        : "Chưa thu hoạch"}
+                                        : "--"}
                                 </span>
                             </div>
                         </div>
@@ -192,15 +201,31 @@ function ProductDetailsDashboard() {
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-wrap gap-2 justify-between">
                         <MetricCard
-                            title="Nhiệt độ không khí"
-                            value={latestEnv && latestEnv.air_temperature}
+                            loading={loadingReadings}
+                            title="Nhiệt độ KK"
+                            value={latestEnv.air_temperature}
                             unit="°C"
                         />
-                        <MetricCard title="Độ ẩm không khí" value={latestEnv && latestEnv.air_humidity} unit="%" />
-                        <MetricCard title="Nhiệt độ đất" value={latestEnv && latestEnv.soil_temperature} unit="°C" />
-                        <MetricCard title="Độ ẩm đất" value={latestEnv && latestEnv.soil_humidity} unit="%" />
-                        <MetricCard title="pH đất" value={latestEnv && latestEnv.ph} unit="" />
-                        <MetricCard title="Ánh sáng" value={latestEnv && latestEnv.light_raw} unit="raw" />
+                        <MetricCard
+                            loading={loadingReadings}
+                            title="Độ ẩm KK"
+                            value={latestEnv.air_humidity}
+                            unit="%"
+                        />
+                        <MetricCard
+                            loading={loadingReadings}
+                            title="Nhiệt độ đất"
+                            value={latestEnv.soil_temperature}
+                            unit="°C"
+                        />
+                        <MetricCard
+                            loading={loadingReadings}
+                            title="Độ ẩm đất"
+                            value={latestEnv.soil_humidity}
+                            unit="%"
+                        />
+                        <MetricCard loading={loadingReadings} title="pH đất" value={latestEnv.ph} unit="" />
+                        <MetricCard loading={loadingReadings} title="Ánh sáng" value={latestEnv.light_raw} unit="raw" />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
@@ -210,17 +235,11 @@ function ProductDetailsDashboard() {
                                     <img src={mainImage} alt={product.name} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="p-4 space-y-2 flex-1">
-                                    <h2 className="font-semibold text-lg">Tổng quan lô rau</h2>
-                                    <p className="text-sm text-slate-400">
-                                        {field.description || "Chưa có mô tả cho ruộng này."}
-                                    </p>
+                                    <h2 className="font-semibold text-lg">Tổng quan</h2>
+                                    <p className="text-sm text-slate-400">{field?.description || "Chưa có mô tả."}</p>
                                     <div className="flex flex-wrap gap-2 text-xs text-slate-400 pt-1">
                                         <span className="px-2 py-1 rounded-full bg-slate-800/80">
-                                            Thiết bị: {field.devices ? field.devices.length : 0}
-                                        </span>
-                                        <span className="px-2 py-1 rounded-full bg-slate-800/80">
-                                            Dữ liệu: {new Date(readings.range.from).toLocaleDateString("vi-VN")} -{" "}
-                                            {new Date(readings.range.to).toLocaleDateString("vi-VN")}
+                                            Thiết bị: {field?.devices?.length || 0}
                                         </span>
                                     </div>
                                 </div>
@@ -228,92 +247,96 @@ function ProductDetailsDashboard() {
                         </div>
 
                         <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 h-full min-h-[400px]">
-                            <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <h2 className="font-semibold text-sm md:text-base">Biểu đồ môi trường</h2>
-                                    <p className="text-xs text-slate-500">
-                                        Thiết bị:{" "}
-                                        {data.readings.devices &&
-                                            data.readings.devices[0] &&
-                                            data.readings.devices[0].deviceId}
-                                    </p>
-                                </div>
-                                <select
-                                    className="bg-slate-950 border border-slate-700 text-xs rounded-lg px-2 py-1"
-                                    value={selectedMetric}
-                                    onChange={(e) => setSelectedMetric(e.target.value)}
-                                >
-                                    {METRIC_OPTIONS.map((m) => (
-                                        <option key={m.key} value={m.key}>
-                                            {m.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="w-full h-[320px]">
-                                {chartData.length === 0 ? (
-                                    <div className="flex items-center justify-center h-full text-slate-500 text-sm">
-                                        Chưa có dữ liệu cảm biến.
+                            {loadingReadings ? (
+                                <div className="h-full flex flex-col gap-4">
+                                    <div className="flex justify-between">
+                                        <Skeleton className="w-32 h-6" />
+                                        <Skeleton className="w-20 h-6" />
                                     </div>
-                                ) : (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={chartData}>
-                                            <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                                            <XAxis
-                                                dataKey="time"
-                                                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                                                minTickGap={20}
-                                            />
-                                            <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} />
-                                            <Tooltip
-                                                contentStyle={{
-                                                    backgroundColor: "#020617",
-                                                    borderRadius: "0.75rem",
-                                                    border: "1px solid #1f2937",
-                                                    fontSize: "12px"
-                                                }}
-                                            />
-                                            <Legend />
-                                            <Line
-                                                type="monotone"
-                                                dataKey={selectedMetric}
-                                                stroke="#22c55e"
-                                                dot={false}
-                                                strokeWidth={2}
-                                                name={
-                                                    (METRIC_OPTIONS.find((m) => m.key === selectedMetric) || {})
-                                                        .label || selectedMetric
-                                                }
-                                            />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                )}
-                            </div>
+                                    <Skeleton className="flex-1 w-full rounded-xl" />
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <h2 className="font-semibold text-sm md:text-base">Biểu đồ môi trường</h2>
+                                        </div>
+                                        <select
+                                            className="bg-slate-950 border border-slate-700 text-xs rounded-lg px-2 py-1 outline-none focus:border-emerald-500"
+                                            value={selectedMetric}
+                                            onChange={(e) => setSelectedMetric(e.target.value)}
+                                        >
+                                            {METRIC_OPTIONS.map((m) => (
+                                                <option key={m.key} value={m.key}>
+                                                    {m.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="w-full h-[320px]">
+                                        {chartData.length === 0 ? (
+                                            <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+                                                Chưa có dữ liệu cảm biến.
+                                            </div>
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={chartData}>
+                                                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                                                    <XAxis
+                                                        dataKey="time"
+                                                        tick={{ fontSize: 10, fill: "#9ca3af" }}
+                                                        minTickGap={20}
+                                                    />
+                                                    <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} />
+                                                    <Tooltip
+                                                        contentStyle={{
+                                                            backgroundColor: "#020617",
+                                                            borderRadius: "0.75rem",
+                                                            border: "1px solid #1f2937",
+                                                            fontSize: "12px"
+                                                        }}
+                                                    />
+                                                    <Legend />
+                                                    <Line
+                                                        type="monotone"
+                                                        dataKey={selectedMetric}
+                                                        stroke="#22c55e"
+                                                        dot={false}
+                                                        strokeWidth={2}
+                                                        name={
+                                                            (METRIC_OPTIONS.find((m) => m.key === selectedMetric) || {})
+                                                                .label || selectedMetric
+                                                        }
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl w-full h-[400px] overflow-y-auto">
-                            <h3 className="font-semibold mb-2 text-sm sticky top-0 bg-slate-900/90 p-4 backdrop-blur-sm z-10 border-b border-slate-800/50">
-                                Lịch sử phát hiện bệnh ({healthCheck_history.length})
+                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl w-full h-[400px] flex flex-col">
+                            <h3 className="font-semibold text-sm p-4 border-b border-slate-800/50">
+                                Lịch sử phát hiện bệnh
                             </h3>
-                            {healthCheck_history.length === 0 ? (
-                                <p className="text-xs text-slate-500 p-4 text-center">Chưa có dữ liệu.</p>
-                            ) : (
-                                <div className="space-y-3 p-4 pt-0">
-                                    {healthCheck_history.map((hc) => (
+                            <div className="overflow-y-auto flex-1 p-4 space-y-3">
+                                {loadingLogs ? (
+                                    [1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-16" />)
+                                ) : logsData?.healthCheck_history?.length > 0 ? (
+                                    logsData.healthCheck_history.map((hc) => (
                                         <button
                                             key={hc._id}
-                                            type="button"
                                             onClick={() => setSelectedHealthCheck(hc)}
-                                            className="w-full text-left flex gap-3 text-xs bg-slate-950/50 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors cursor-pointer"
+                                            className="w-full text-left flex gap-3 text-xs bg-slate-950/50 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors"
                                         >
-                                            {hc.image_predetect && hc.image_predetect.image_url && (
+                                            {hc.image_predetect?.image_url && (
                                                 <img
                                                     src={hc.image_predetect.image_url}
                                                     alt="hc"
-                                                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0 bg-slate-800"
+                                                    className="w-14 h-14 rounded-lg object-cover bg-slate-800"
                                                 />
                                             )}
                                             <div className="space-y-1 min-w-0">
@@ -325,31 +348,32 @@ function ProductDetailsDashboard() {
                                                 </div>
                                             </div>
                                         </button>
-                                    ))}
-                                </div>
-                            )}
+                                    ))
+                                ) : (
+                                    <p className="text-xs text-slate-500 text-center pt-10">Chưa có dữ liệu.</p>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl w-full h-[400px] overflow-y-auto">
-                            <h3 className="font-semibold mb-2 text-sm sticky top-0 bg-slate-900/90 p-4 backdrop-blur-sm z-10 border-b border-slate-800/50">
-                                Lịch sử kiểm tra thủ công ({manualChecks_history.length})
+                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl w-full h-[400px] flex flex-col">
+                            <h3 className="font-semibold text-sm p-4 border-b border-slate-800/50">
+                                Lịch sử kiểm tra thủ công
                             </h3>
-                            {manualChecks_history.length === 0 ? (
-                                <p className="text-xs text-slate-500 p-4 text-center">Chưa có dữ liệu.</p>
-                            ) : (
-                                <div className="space-y-3 p-4 pt-0">
-                                    {manualChecks_history.map((hc) => (
+                            <div className="overflow-y-auto flex-1 p-4 space-y-3">
+                                {loadingLogs ? (
+                                    [1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-16" />)
+                                ) : logsData?.manualChecks_history?.length > 0 ? (
+                                    logsData.manualChecks_history.map((hc) => (
                                         <button
                                             key={hc._id}
-                                            type="button"
                                             onClick={() => setSelectedManualHealthCheck(hc)}
-                                            className="w-full text-left flex gap-3 text-xs bg-slate-950/50 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors cursor-pointer"
+                                            className="w-full text-left flex gap-3 text-xs bg-slate-950/50 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors"
                                         >
                                             {hc.image && (
                                                 <img
                                                     src={`data:image/png;base64,${hc.image}`}
-                                                    alt="manual-check"
-                                                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0 bg-slate-800"
+                                                    alt="manual"
+                                                    className="w-14 h-14 rounded-lg object-cover bg-slate-800"
                                                 />
                                             )}
                                             <div className="space-y-1 min-w-0">
@@ -361,23 +385,45 @@ function ProductDetailsDashboard() {
                                                 </div>
                                             </div>
                                         </button>
-                                    ))}
-                                </div>
-                            )}
+                                    ))
+                                ) : (
+                                    <p className="text-xs text-slate-500 text-center pt-10">Chưa có dữ liệu.</p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {ai_quality_description && (
-                        <div className="w-full">
-                            <AiAnalysisCard description={ai_quality_description} />
-                        </div>
-                    )}
+                    <div className="w-full">
+                        {loadingAi ? (
+                            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <Skeleton className="w-8 h-8 rounded-full" />
+                                    <Skeleton className="w-48 h-6" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Skeleton className="w-full h-4" />
+                                    <Skeleton className="w-full h-4" />
+                                    <Skeleton className="w-3/4 h-4" />
+                                </div>
+                            </div>
+                        ) : (
+                            aiData?.ai_quality_description && (
+                                <AiAnalysisCard description={aiData.ai_quality_description} />
+                            )
+                        )}
+                    </div>
                 </div>
             </div>
 
             {selectedHealthCheck && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                    onClick={() => setSelectedHealthCheck(null)}
+                >
+                    <div
+                        className="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 shrink-0">
                             <div>
                                 <h3 className="text-sm font-semibold text-slate-100">Chi tiết kiểm tra (AI)</h3>
@@ -414,8 +460,14 @@ function ProductDetailsDashboard() {
             )}
 
             {selectedManualHealthCheck && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                    onClick={() => setSelectedManualHealthCheck(null)}
+                >
+                    <div
+                        className="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 shrink-0">
                             <div>
                                 <h3 className="text-sm font-semibold text-slate-100">Chi tiết kiểm tra (Thủ công)</h3>
@@ -456,7 +508,7 @@ function ProductDetailsDashboard() {
                             <div>
                                 <h4 className="text-sm font-semibold text-emerald-400 mb-1">Mô tả:</h4>
                                 <p className="text-slate-300 text-sm leading-relaxed">
-                                    {selectedManualHealthCheck.description}
+                                    <MarkdownTable>{selectedManualHealthCheck.description}</MarkdownTable>
                                 </p>
                             </div>
                         </div>
