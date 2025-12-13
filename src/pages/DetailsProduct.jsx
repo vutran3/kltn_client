@@ -26,6 +26,15 @@ const statusLabel = {
     selling: "Đang bán"
 };
 
+const careHistoryLabel = {
+    watering: "Tưới nước",
+    fertilizing: "Bón phân",
+    pesticide: "Phun thuốc",
+    pruning: "Cắt tỉa",
+    harvest: "Thu hoạch",
+    default: "Hoạt động khác"
+};
+
 const Skeleton = ({ className }) => <div className={`animate-pulse bg-slate-800/50 rounded-xl ${className}`}></div>;
 
 function MetricCard({ title, value, unit, loading }) {
@@ -56,15 +65,18 @@ function ProductDetailsDashboard() {
     const [readingsData, setReadingsData] = useState(null); // API 2: Readings (Chart + Metrics)
     const [logsData, setLogsData] = useState(null); // API 3: Logs (Health + Manual)
     const [aiData, setAiData] = useState(null); // API 4: AI Analysis
+    const [careLogsData, setCareLogsData] = useState(null); // API 5: Care History
 
     const [loadingInfo, setLoadingInfo] = useState(true);
     const [loadingReadings, setLoadingReadings] = useState(true);
     const [loadingLogs, setLoadingLogs] = useState(true);
     const [loadingAi, setLoadingAi] = useState(true);
+    const [loadingCareLogs, setLoadingCareLogs] = useState(true);
 
     const [selectedMetric, setSelectedMetric] = useState("air_temperature");
     const [selectedHealthCheck, setSelectedHealthCheck] = useState(null);
     const [selectedManualHealthCheck, setSelectedManualHealthCheck] = useState(null);
+    const [selectedCareLog, setSelectedCareLog] = useState(null);
 
     useEffect(() => {
         if (!productId) return;
@@ -90,6 +102,11 @@ function ProductDetailsDashboard() {
                 .then((res) => isMounted && setAiData(res.data))
                 .catch((err) => console.error("AI Error:", err))
                 .finally(() => isMounted && setLoadingAi(false));
+
+            getDataApi(`/products/${productId}/care-logs`)
+                .then((res) => isMounted && setCareLogsData(res.data))
+                .catch((err) => console.error("Care Logs Error:", err))
+                .finally(() => isMounted && setLoadingCareLogs(false));
         };
 
         fetchData();
@@ -317,77 +334,142 @@ function ProductDetailsDashboard() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl w-full h-[400px] flex flex-col">
-                            <h3 className="font-semibold text-sm p-4 border-b border-slate-800/50">
-                                Lịch sử phát hiện bệnh
-                            </h3>
-                            <div className="overflow-y-auto flex-1 p-4 space-y-3">
-                                {loadingLogs ? (
-                                    [1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-16" />)
-                                ) : logsData?.healthCheck_history?.length > 0 ? (
-                                    logsData.healthCheck_history.map((hc) => (
-                                        <button
-                                            key={hc._id}
-                                            onClick={() => setSelectedHealthCheck(hc)}
-                                            className="w-full text-left flex gap-3 text-xs bg-slate-950/50 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors"
-                                        >
-                                            {hc.image_predetect?.image_url && (
-                                                <img
-                                                    src={hc.image_predetect.image_url}
-                                                    alt="hc"
-                                                    className="w-14 h-14 rounded-lg object-cover bg-slate-800"
-                                                />
-                                            )}
-                                            <div className="space-y-1 min-w-0">
-                                                <div className="text-slate-300 font-medium">
-                                                    {new Date(hc.inspection_date).toLocaleString("vi-VN")}
+                    <div className="flex flex-col w-full gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl w-full h-[400px] flex flex-col">
+                                <h3 className="font-semibold text-sm p-4 border-b border-slate-800/50 flex justify-between items-center">
+                                    Lịch sử phát hiện bệnh tự động
+                                    <span className="text-xs font-medium text-slate-700 bg-slate-100 flex justify-center items-center h-6 w-6 rounded-full">
+                                        {logsData?.healthCheck_history?.length || 0}
+                                    </span>
+                                </h3>
+                                <div className="overflow-y-auto flex-1 p-4 space-y-3">
+                                    {loadingLogs ? (
+                                        [1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-16" />)
+                                    ) : logsData?.healthCheck_history?.length > 0 ? (
+                                        logsData.healthCheck_history.map((hc) => (
+                                            <button
+                                                key={hc._id}
+                                                onClick={() => setSelectedHealthCheck(hc)}
+                                                className="w-full text-left flex gap-3 text-xs bg-slate-950/50 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors"
+                                            >
+                                                {hc.image_predetect?.image_url && (
+                                                    <img
+                                                        src={hc.image_predetect.image_url}
+                                                        alt="hc"
+                                                        className="w-14 h-14 rounded-lg object-cover bg-slate-800"
+                                                    />
+                                                )}
+                                                <div className="space-y-1 min-w-0">
+                                                    <div className="text-slate-300 font-medium">
+                                                        {new Date(hc.inspection_date).toLocaleString("vi-VN")}
+                                                    </div>
+                                                    <div className="text-slate-400 line-clamp-2">
+                                                        {hc.predicting_description || "Không có mô tả."}
+                                                    </div>
                                                 </div>
-                                                <div className="text-slate-400 line-clamp-2">
-                                                    {hc.predicting_description || "Không có mô tả."}
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-slate-500 text-center pt-10">Chưa có dữ liệu.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl w-full h-[400px] flex flex-col">
+                                <h3 className="font-semibold text-sm p-4 border-b border-slate-800/50 flex justify-between items-center">
+                                    Lịch sử kiểm tra thủ công
+                                    <span className="text-xs font-medium text-slate-700 bg-slate-100 flex justify-center items-center h-6 w-6 rounded-full">
+                                        {logsData?.manualChecks_history?.length || 0}
+                                    </span>
+                                </h3>
+                                <div className="overflow-y-auto flex-1 p-4 space-y-3">
+                                    {loadingLogs ? (
+                                        [1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-16" />)
+                                    ) : logsData?.manualChecks_history?.length > 0 ? (
+                                        logsData.manualChecks_history.map((hc) => (
+                                            <button
+                                                key={hc._id}
+                                                onClick={() => setSelectedManualHealthCheck(hc)}
+                                                className="w-full text-left flex gap-3 text-xs bg-slate-950/50 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors"
+                                            >
+                                                {hc.image && (
+                                                    <img
+                                                        src={`data:image/png;base64,${hc.image}`}
+                                                        alt="manual"
+                                                        className="w-14 h-14 rounded-lg object-cover bg-slate-800"
+                                                    />
+                                                )}
+                                                <div className="space-y-1 min-w-0">
+                                                    <div className="text-slate-300 font-medium">
+                                                        {new Date(hc.detect_date).toLocaleString("vi-VN")}
+                                                    </div>
+                                                    <div className="text-slate-400 line-clamp-2">
+                                                        {hc.description || "Không có mô tả."}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </button>
-                                    ))
-                                ) : (
-                                    <p className="text-xs text-slate-500 text-center pt-10">Chưa có dữ liệu.</p>
-                                )}
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-slate-500 text-center pt-10">Chưa có dữ liệu.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
                         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl w-full h-[400px] flex flex-col">
-                            <h3 className="font-semibold text-sm p-4 border-b border-slate-800/50">
-                                Lịch sử kiểm tra thủ công
+                            <h3 className="font-semibold text-sm p-4 border-b border-slate-800/50 flex justify-between items-center">
+                                Nhật ký chăm sóc
+                                <span className="text-xs font-medium text-slate-700 bg-slate-100 flex justify-center items-center h-6 w-6 rounded-full">
+                                    {careLogsData?.care_history?.length || 0}
+                                </span>
                             </h3>
                             <div className="overflow-y-auto flex-1 p-4 space-y-3">
-                                {loadingLogs ? (
+                                {loadingCareLogs ? (
                                     [1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-16" />)
-                                ) : logsData?.manualChecks_history?.length > 0 ? (
-                                    logsData.manualChecks_history.map((hc) => (
+                                ) : careLogsData?.care_history?.length > 0 ? (
+                                    careLogsData.care_history.map((log) => (
                                         <button
-                                            key={hc._id}
-                                            onClick={() => setSelectedManualHealthCheck(hc)}
+                                            key={log._id}
+                                            onClick={() => setSelectedCareLog(log)}
                                             className="w-full text-left flex gap-3 text-xs bg-slate-950/50 rounded-xl p-2 border border-slate-800/60 hover:border-emerald-400/70 hover:bg-slate-900 transition-colors"
                                         >
-                                            {hc.image && (
-                                                <img
-                                                    src={`data:image/png;base64,${hc.image}`}
-                                                    alt="manual"
-                                                    className="w-14 h-14 rounded-lg object-cover bg-slate-800"
-                                                />
-                                            )}
-                                            <div className="space-y-1 min-w-0">
-                                                <div className="text-slate-300 font-medium">
-                                                    {new Date(hc.detect_date).toLocaleString("vi-VN")}
+                                            <div
+                                                className={`w-12 h-12 rounded-lg flex-shrink-0 flex items-center justify-center text-xl ${
+                                                    log.image ? "" : "bg-emerald-100 text-emerald-600"
+                                                }`}
+                                            >
+                                                {log.image ? (
+                                                    <img
+                                                        src={log.image}
+                                                        alt="log"
+                                                        className="w-full h-full object-cover rounded-lg"
+                                                    />
+                                                ) : log.processType.toLowerCase() === "watering" ? (
+                                                    "💧"
+                                                ) : log.processType.toLowerCase() === "fertilizing" ? (
+                                                    "🧪"
+                                                ) : (
+                                                    "🌿"
+                                                )}
+                                            </div>
+                                            <div className="space-y-1 min-w-0 flex-1">
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-300 font-medium">
+                                                        {careHistoryLabel[log.processType.toLowerCase()] || "Chăm sóc"}
+                                                    </span>
+                                                    <span className="text-slate-300 font-medium">
+                                                        {new Date(log.process_date).toLocaleDateString("vi-VN")}
+                                                    </span>
                                                 </div>
-                                                <div className="text-slate-400 line-clamp-2">
-                                                    {hc.description || "Không có mô tả."}
+                                                <div className="text-slate-500 line-clamp-2">
+                                                    {log.notes || "Không có ghi chú."}
                                                 </div>
                                             </div>
                                         </button>
                                     ))
                                 ) : (
-                                    <p className="text-xs text-slate-500 text-center pt-10">Chưa có dữ liệu.</p>
+                                    <p className="text-xs text-slate-400 text-center pt-10">Chưa có dữ liệu.</p>
                                 )}
                             </div>
                         </div>

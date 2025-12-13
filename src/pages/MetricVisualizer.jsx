@@ -94,7 +94,6 @@ export default function MetricVisualizer() {
                     to: String(to.getTime()),
                     sort: "1"
                 }).then((res) => {
-                    console.log(res);
                     const minuteRows = averagePerDay(res.data.data.rows, { tzOffsetMinutes: 420 });
                     setData(mapApiRowsToSeries(minuteRows));
                 });

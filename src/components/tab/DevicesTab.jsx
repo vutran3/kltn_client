@@ -171,7 +171,7 @@ export default function DevicesTab() {
                                             (it.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600")
                                         }
                                     >
-                                        {it.is_active ? "Active" : "Inactive"}
+                                        {it.is_active ? "Online" : "Offline"}
                                     </span>
                                 </td>
                                 <td className="px-4 py-3 text-right space-x-2">

@@ -7,7 +7,6 @@ import {
     Calendar,
     Plus,
     Trash2,
-    Edit2,
     Image as ImageIcon,
     UploadCloud,
     X,
@@ -34,6 +33,8 @@ const getProcessTypeConfig = (type) => {
             return { color: "bg-red-100 text-red-700", icon: <Bug size={16} />, label: "Phun thuốc" };
         case "pruning":
             return { color: "bg-green-100 text-green-700", icon: <Scissors size={16} />, label: "Cắt tỉa" };
+        case "harvest":
+            return { color: "bg-orange-100 text-orange-700", icon: <ClipboardList size={16} />, label: "Thu hoạch" };
         default:
             return { color: "bg-gray-100 text-gray-700", icon: <Calendar size={16} />, label: "Hoạt động khác" };
     }
@@ -51,8 +52,10 @@ const ProductHistoryManager = () => {
 
     const [isDragging, setIsDragging] = useState(false);
 
+    // --- CẬP NHẬT STATE BỘ LỌC ---
     const [filterType, setFilterType] = useState("ALL");
-    const [filterDate, setFilterDate] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
 
     const [formData, setFormData] = useState({
         processType: "WATERING",
@@ -62,17 +65,28 @@ const ProductHistoryManager = () => {
     });
 
     const fetchHistory = async () => {
+        if (!deviceId) return;
         setLoading(true);
         try {
-            const res = await getDataApi(ENDPOINT, {
+            const params = {
                 device_id: deviceId,
-                sort: "ctime" // Sắp xếp mới nhất
-            });
+                sort: "ctime", // Sắp xếp mới nhất
+                limit: 50 // Tăng giới hạn hiển thị nếu cần
+            };
+
+            if (startDate) params.process_date_start = startDate;
+            if (endDate) params.process_date_end = endDate;
+
+            const res = await getDataApi(ENDPOINT, params);
+
             if (res.data?.metadata?.results) {
                 setHistories(res.data.metadata.results);
+            } else {
+                setHistories([]);
             }
         } catch (error) {
             console.error("Lỗi tải dữ liệu:", error);
+            setHistories([]);
         } finally {
             setLoading(false);
         }
@@ -81,11 +95,14 @@ const ProductHistoryManager = () => {
     const filteredHistories = useMemo(() => {
         return histories.filter((item) => {
             const matchType = filterType === "ALL" || item.processType === filterType;
-            const itemDate = item.process_date?.split("T")[0];
-            const matchDate = !filterDate || itemDate === filterDate;
-            return matchType && matchDate;
+            return matchType;
         });
-    }, [histories, filterType, filterDate]);
+    }, [histories, filterType]);
+
+    // Gọi lại API khi thay đổi deviceId hoặc filter ngày tháng
+    useEffect(() => {
+        fetchHistory();
+    }, [deviceId, startDate, endDate]);
 
     const processFile = (file) => {
         if (!file) return;
@@ -144,10 +161,11 @@ const ProductHistoryManager = () => {
             else await postDataApi(ENDPOINT, data, { device_id: deviceId });
 
             setIsModalOpen(false);
-            fetchHistory();
+            fetchHistory(); // Tải lại dữ liệu sau khi submit
             resetForm();
         } catch (error) {
             console.error("Lỗi lưu dữ liệu:", error);
+            alert("Có lỗi xảy ra khi lưu dữ liệu.");
         } finally {
             setSubmitting(false);
         }
@@ -160,12 +178,9 @@ const ProductHistoryManager = () => {
             fetchHistory();
         } catch (error) {
             console.error("Lỗi xóa:", error);
+            alert("Không thể xóa dữ liệu.");
         }
     };
-
-    useEffect(() => {
-        if (deviceId) fetchHistory();
-    }, [deviceId]);
 
     useEffect(() => {
         return () => {
@@ -190,7 +205,9 @@ const ProductHistoryManager = () => {
         setSelectedFile(null);
         setFormData({
             processType: item.processType,
-            process_date: new Date(item.process_date).toISOString().slice(0, 16),
+            process_date: item.process_date
+                ? new Date(item.process_date).toISOString().slice(0, 16)
+                : new Date().toISOString().slice(0, 16),
             notes: item.notes,
             image: item.image || ""
         });
@@ -221,41 +238,61 @@ const ProductHistoryManager = () => {
                 </div>
 
                 {/* Filter Bar */}
-                <div className="bg-white p-1 rounded-lg border border-gray-200 mb-6 flex flex-col sm:flex-row gap-3 items-center shadow-sm">
+                <div className="bg-white p-1 rounded-lg border border-gray-200 mb-6 flex flex-col lg:flex-row gap-3 items-start lg:items-center shadow-sm">
                     <div className="flex items-center gap-2 text-gray-500 text-sm font-medium min-w-fit px-3 py-2">
                         <Filter size={16} /> Bộ lọc:
                     </div>
 
-                    <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+                    <div className="h-6 w-px bg-gray-200 hidden lg:block"></div>
 
-                    <select
-                        className="w-full sm:w-auto p-2 bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer hover:bg-gray-50 rounded"
-                        value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
-                    >
-                        <option value="ALL">Tất cả hoạt động</option>
-                        <option value="WATERING">Tưới nước</option>
-                        <option value="FERTILIZING">Bón phân</option>
-                        <option value="PESTICIDE">Phun thuốc</option>
-                        <option value="PRUNING">Cắt tỉa</option>
-                        <option value="HARVEST">Thu hoạch</option>
-                        <option value="OTHER">Khác</option>
-                    </select>
+                    {/* Lọc loại hoạt động */}
+                    <div className="w-full lg:w-auto">
+                        <select
+                            className="w-full p-2 bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer hover:bg-gray-50 rounded border lg:border-none border-gray-100"
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value)}
+                        >
+                            <option value="ALL">Tất cả hoạt động</option>
+                            <option value="WATERING">Tưới nước</option>
+                            <option value="FERTILIZING">Bón phân</option>
+                            <option value="PESTICIDE">Phun thuốc</option>
+                            <option value="PRUNING">Cắt tỉa</option>
+                            <option value="HARVEST">Thu hoạch</option>
+                            <option value="OTHER">Khác</option>
+                        </select>
+                    </div>
 
-                    <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+                    <div className="h-6 w-px bg-gray-200 hidden lg:block"></div>
 
-                    <input
-                        type="date"
-                        className="w-full sm:w-auto p-2 bg-transparent text-sm outline-none text-gray-600 cursor-pointer hover:bg-gray-50 rounded"
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                    />
+                    {/* Lọc khoảng thời gian - THAY ĐỔI LỚN TẠI ĐÂY */}
+                    <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto items-center">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <span className="text-xs text-gray-400 whitespace-nowrap px-2">Từ:</span>
+                            <input
+                                type="date"
+                                className="w-full sm:w-auto p-2 bg-transparent text-sm outline-none text-gray-600 cursor-pointer hover:bg-gray-50 rounded border border-gray-200 lg:border-none"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <span className="text-xs text-gray-400 whitespace-nowrap px-2">Đến:</span>
+                            <input
+                                type="date"
+                                className="w-full sm:w-auto p-2 bg-transparent text-sm outline-none text-gray-600 cursor-pointer hover:bg-gray-50 rounded border border-gray-200 lg:border-none"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                            />
+                        </div>
+                    </div>
 
-                    {(filterType !== "ALL" || filterDate) && (
+                    {/* Nút Reset Filter */}
+                    {(filterType !== "ALL" || startDate || endDate) && (
                         <button
                             onClick={() => {
                                 setFilterType("ALL");
-                                setFilterDate("");
+                                setStartDate("");
+                                setEndDate("");
                             }}
                             className="ml-auto mr-2 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                             title="Xóa bộ lọc"
@@ -279,11 +316,11 @@ const ProductHistoryManager = () => {
                             </div>
                             <h3 className="text-gray-900 font-medium text-lg">Chưa có dữ liệu</h3>
                             <p className="text-gray-500 text-sm mt-1 mb-6">
-                                {filterType !== "ALL" || filterDate
+                                {filterType !== "ALL" || startDate || endDate
                                     ? "Không tìm thấy kết quả phù hợp với bộ lọc."
                                     : "Bắt đầu ghi lại nhật ký chăm sóc ngay hôm nay."}
                             </p>
-                            {filterType === "ALL" && !filterDate && (
+                            {filterType === "ALL" && !startDate && !endDate && (
                                 <button
                                     onClick={() => {
                                         resetForm();
@@ -395,7 +432,7 @@ const ProductHistoryManager = () => {
                 </div>
             </div>
 
-            {/* Modal - Giữ nguyên logic */}
+            {/* Modal - Phần này giữ nguyên, không thay đổi */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto no-scrollbar">
@@ -476,7 +513,7 @@ const ProductHistoryManager = () => {
                                                 <X size={16} />
                                             </button>
                                             <label className="absolute bottom-2 right-2 bg-white/90 text-gray-700 px-3 py-1 rounded-md text-xs font-medium cursor-pointer hover:bg-white shadow-sm flex items-center gap-1">
-                                                <Edit2 size={12} /> Thay đổi
+                                                <Edit size={12} /> Thay đổi
                                                 <input
                                                     type="file"
                                                     className="hidden"
