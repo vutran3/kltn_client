@@ -68,18 +68,24 @@ export const handleExportExcel = (history, selectedId) => {
 export const convertBufferToUrl = (imgData) => {
     if (!imgData) return "";
 
-    // Trường hợp 1: Dữ liệu là Buffer object từ Mongoose ({ type: 'Buffer', data: [...] })
     if (imgData.type === "Buffer" && Array.isArray(imgData.data)) {
         const byteArray = new Uint8Array(imgData.data);
-        // Tạo Blob từ mảng byte. Lưu ý: type có thể để 'image/png' hoặc 'image/jpeg'
         const blob = new Blob([byteArray], { type: "image/png" });
         return URL.createObjectURL(blob);
     }
 
-    // Trường hợp 2: Dữ liệu là Base64 string (trả về ngay sau khi detect xong từ API cũ hoặc legacy data)
-    if (typeof imgData === "string") {
+    if (typeof imgData === "string")
         return imgData.startsWith("data:image") ? imgData : `data:image/png;base64,${imgData}`;
-    }
 
     return "";
+};
+
+export const arrayBufferToBase64 = (buffer) => {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
 };

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { TiMediaRecord, TiMediaRecordOutline } from "react-icons/ti";
 
-const LiveStream = () => {
+const LiveStream = ({ title }) => {
     const [imageSrc, setImageSrc] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
     const wsRef = useRef(null);
@@ -55,8 +55,9 @@ const LiveStream = () => {
     return (
         <div className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-md w-full  mx-auto">
             {/* Header & Trạng thái */}
-            <div className="flex justify-between items-center w-full mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Camera Nông Sản</h2>
+
+            <div className="flex justify-between items-center w-full mb-4 flex-wrap">
+                <h2 className="text-xl font-bold text-gray-800">{title || "Camera"}</h2>
                 <span
                     className={`px-3 py-1 text-sm font-semibold rounded-full ${
                         isConnected
@@ -96,8 +97,6 @@ const LiveStream = () => {
                     </div>
                 )}
             </div>
-
-            <p className="mt-2 text-xs text-gray-400">Streaming via WebSocket • MJPEG Format</p>
         </div>
     );
 };
