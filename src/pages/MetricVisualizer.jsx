@@ -161,7 +161,7 @@ export default function MetricVisualizer() {
                     )}
                 </div>
 
-                <section className="bg-white p-6 rounded-xl">
+                <section className="bg-white p-6 rounded-xl border border-gray-200">
                     <h3 className="mb-4 text-lg font-bold text-slate-700">PHÂN TÍCH CHUYÊN SÂU</h3>
 
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-6">

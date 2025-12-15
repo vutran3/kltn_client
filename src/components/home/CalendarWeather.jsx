@@ -146,7 +146,7 @@ const CalendarWeather = () => {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 custom-xl:block hidden">
             {/* Enhanced Calendar */}
             <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
                 <div className="flex items-center justify-between mb-6">
@@ -215,7 +215,7 @@ const CalendarWeather = () => {
             </div>
 
             {/* Enhanced Weather Forecast */}
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+            {/* <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                         <CloudRain className="w-6 h-6 text-blue-600" />
@@ -284,7 +284,7 @@ const CalendarWeather = () => {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 };

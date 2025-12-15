@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/slices/authSlice";
 import UserAvatar from "../common/UserAvatar";
 import { selectAuth } from "../../redux/selector";
+import { Link } from "react-router-dom";
 
 export default function Header() {
     const dispatch = useDispatch();
@@ -21,10 +22,10 @@ export default function Header() {
     return (
         <header className="bg-blue-800 text-white fixed top-0 left-0 w-full h-16 z-50">
             <div className="flex items-center justify-between h-full px-2">
-                <div className="flex items-center h-[88%] gap-2">
+                <Link to="/" className="flex items-center h-[85%] gap-2">
                     <img src={logo} alt="logo" className="h-10/12 object-contain relative top-[2px]" />
-                    <h1 className="text-xl font-bold whitespace-nowrap">HỆ THỐNG GIÁM SÁT CHẤT LƯỢNG NÔNG SẢN</h1>
-                </div>
+                    <h1 className="text-xl font-bold whitespace-nowrap">SMART CROP</h1>
+                </Link>
 
                 <div className="flex items-center space-x-4">
                     <span className="text-lg font-mono hidden sm:inline">

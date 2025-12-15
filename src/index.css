@@ -8,3 +8,8 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
 }
+
+@theme {
+    --breakpoint-xs: 475px;
+    --breakpoint-custom-xl: 1200px;
+}

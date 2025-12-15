@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { RefreshCcw, Upload, FileText, Loader2 } from "lucide-react";
-import { IoSearch } from "react-icons/io5";
+import { IoSearch, IoChevronBack, IoChevronForward, IoMail } from "react-icons/io5";
 import {
     loadKnowledgeHistory,
     saveKnowledgeHistoryItem,
@@ -11,7 +11,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import instance from "../config/axios.config";
 import { selectDevice } from "../redux/selector";
-import { postDataApi } from "../utils/fetch";
+import { deleteDataApi, getDataApi, postDataApi } from "../utils/fetch";
 
 import Card from "../components/quality_check/Card";
 import TimeFilter from "../components/quality_check/TimeFilter";
@@ -19,12 +19,7 @@ import QualityTable from "../components/quality_check/QualityTable";
 import { ImagePicker } from "../components/quality_check/ImagePicker";
 import { mapResults } from "../utils";
 import MarkdownTable from "../components/common/MarkdownTable";
-import {
-    clearManualHistory,
-    loadManualHistory,
-    removeManualHistoryItem,
-    saveManualHistoryItem
-} from "../utils/manualHistory";
+import { convertBufferToUrl } from "../utils/handleFile";
 
 // Auto Detect Tab
 function AutoDetectTab() {
@@ -172,17 +167,67 @@ function ManualDetectPanel() {
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState("");
     const [loading, setLoading] = useState(false);
+
     const [resultImg, setResultImg] = useState("");
     const [resultText, setResultText] = useState("");
+
     const [history, setHistory] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [sendingMailId, setSendingMailId] = useState(null);
+
+    const handleSendExpert = async (id) => {
+        try {
+            setSendingMailId(id);
+
+            await postDataApi("/rag/request-expert", { id });
+
+            alert("Đã gửi email yêu cầu chuyên gia xác nhận!");
+
+            fetchHistory(currentPage);
+        } catch (err) {
+            console.error(err);
+            alert(err?.response?.data?.message || "Lỗi khi gửi yêu cầu.");
+        } finally {
+            setSendingMailId(null);
+        }
+    };
+
+    const fetchHistory = async (page) => {
+        if (!selectedId) return;
+        try {
+            setIsLoadingHistory(true);
+            const res = await getDataApi(`/rag/history?device_id=${selectedId}&page=${page}&limit=6`);
+            if (res && res.data) {
+                setHistory(res.data.data);
+                setTotalPages(res.data.meta.totalPages);
+                setCurrentPage(res.data.meta.page);
+            }
+        } catch (err) {
+            console.error("Failed to load history", err);
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    };
 
     useEffect(() => {
-        setHistory(loadManualHistory());
-    }, []);
+        setCurrentPage(1);
+        fetchHistory(1);
+        setResultImg("");
+        setResultText("");
+    }, [selectedId]);
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            fetchHistory(newPage);
+        }
+    };
 
     const onSubmit = async (e) => {
         e.preventDefault();
-        if (!file) return;
+        if (!file || !selectedId) return;
+
         try {
             setLoading(true);
             const fd = new FormData();
@@ -195,26 +240,46 @@ function ManualDetectPanel() {
             });
 
             const advice = data.data.advice ?? "Không có kết quả.";
-            const image = data.data.image;
+            const displayUrl = convertBufferToUrl(data.data.image);
 
-            if (image) setResultImg(`data:image/png;base64,${image}`);
-            else setResultImg(preview);
+            setResultImg(displayUrl || preview);
             setResultText(advice);
 
-            const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-            const item = {
-                id,
-                ts: Date.now(),
-                img: image ? `data:image/png;base64,${image}` : preview,
-                advice
-            };
-            const newList = saveManualHistoryItem(item);
-            if (newList) setHistory(newList);
+            fetchHistory(1);
         } catch (err) {
             setResultText("Lỗi khi detect thủ công. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDeleteItem = async (id) => {
+        if (!confirm("Bạn có chắc muốn xoá kết quả này?")) return;
+        try {
+            await deleteDataApi(`/rag/history/${id}`);
+
+            if (history.length === 1 && currentPage > 1) fetchHistory(currentPage - 1);
+            else fetchHistory(currentPage);
+        } catch (err) {
+            alert("Lỗi khi xoá.");
+        }
+    };
+
+    const handleClearAll = async () => {
+        if (!confirm("Xoá toàn bộ lịch sử?")) return;
+        try {
+            await deleteDataApi(`/rag/history`, { data: { device_id: selectedId } });
+            setHistory([]);
+            setTotalPages(1);
+            setCurrentPage(1);
+        } catch (err) {
+            alert("Lỗi khi xoá tất cả.");
+        }
+    };
+
+    const getDisplayImage = (item) => {
+        if (!item) return preview;
+        return convertBufferToUrl(item);
     };
 
     return (
@@ -230,7 +295,7 @@ function ManualDetectPanel() {
                 <div className="w-full flex justify-end">
                     <button
                         type="submit"
-                        disabled={!file || loading}
+                        disabled={!file || loading || !selectedId}
                         className="inline-flex items-center gap-2 rounded-xl bg-blue-600 text-white px-4 h-10 disabled:opacity-80"
                     >
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <IoSearch className="w-4 h-4" />}
@@ -243,7 +308,7 @@ function ManualDetectPanel() {
                 <div className="flex gap-4 mt-6">
                     {resultImg && (
                         <div className="flex-1">
-                            <div className="text-sm font-medium text-slate-800 mb-2">Ảnh kết quả liên quan</div>
+                            <div className="text-sm font-medium text-slate-800 mb-2">Ảnh kết quả</div>
                             <img
                                 src={resultImg}
                                 alt="annotated"
@@ -262,56 +327,138 @@ function ManualDetectPanel() {
 
             <div className="mt-8">
                 <div className="flex items-center justify-between mb-2">
-                    <div className="text-sm font-medium text-slate-800">Lịch sử kiểm tra (gần nhất)</div>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            clearManualHistory();
-                            setHistory([]);
-                        }}
-                        className="text-xs px-3 py-1 rounded-lg border border-gray-300 hover:bg-slate-50 hover:text-red-500 cursor-pointer"
-                    >
-                        Xoá tất cả
-                    </button>
+                    <div className="text-sm font-medium text-slate-800">Lịch sử kiểm tra</div>
+                    {history.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={handleClearAll}
+                            className="text-xs px-3 py-1 rounded-lg border border-gray-300 hover:bg-slate-50 hover:text-red-500 cursor-pointer"
+                        >
+                            Xoá tất cả
+                        </button>
+                    )}
                 </div>
 
-                {history.length === 0 ? (
-                    <div className="text-sm text-slate-500">Chưa có lịch sử.</div>
+                {isLoadingHistory ? (
+                    <div className="py-8 flex justify-center text-slate-500">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                ) : history.length === 0 ? (
+                    <div className="text-sm text-slate-500 py-4">Chưa có lịch sử.</div>
                 ) : (
-                    <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
-                        {history.map((h) => (
-                            <li key={h.id} className="border border-gray-300 rounded-xl p-3 bg-white">
-                                <div className="flex items-center gap-3">
-                                    <img src={h.img} alt="" className="w-20 h-20 object-cover rounded-lg border" />
-                                    <div className="flex-1">
-                                        <div className="text-xs text-slate-500">{new Date(h.ts).toLocaleString()}</div>
-                                        <div className="mt-2 flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setResultImg(h.img);
-                                                    setResultText(h.advice);
-                                                    window.scrollTo({ top: 0, behavior: "smooth" });
-                                                }}
-                                                className="text-xs px-3 py-1 rounded-lg border border-gray-300 hover:bg-slate-50 cursor-pointer text-blue-600 font-semibold"
-                                            >
-                                                Xem lại
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setHistory(removeManualHistoryItem(h.id));
-                                                }}
-                                                className="text-xs px-3 py-1 rounded-lg border border-gray-300 hover:bg-slate-50 cursor-pointer text-red-500 font-semibold"
-                                            >
-                                                Xoá
-                                            </button>
+                    <>
+                        <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {history.map((h) => {
+                                const imgSrc = getDisplayImage(h.image);
+
+                                const hasFeedback = h.expert_feedback && h.expert_feedback.trim() !== "";
+                                const isSent = h.isSend;
+
+                                return (
+                                    <li key={h._id} className="border border-gray-300 rounded-xl p-3 bg-white">
+                                        <div className="flex items-center gap-3">
+                                            <img
+                                                src={imgSrc}
+                                                alt=""
+                                                className="w-20 h-20 object-cover rounded-lg border bg-gray-100"
+                                            />
+
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-xs text-slate-500 truncate">
+                                                    {new Date(h.detect_date).toLocaleString()}
+                                                </div>
+
+                                                <div className="text-xs font-semibold my-1">
+                                                    {hasFeedback ? (
+                                                        <span className="text-green-600">Đã có phản hồi</span>
+                                                    ) : isSent ? (
+                                                        <span className="text-yellow-600">Đang chờ chuyên gia</span>
+                                                    ) : (
+                                                        <span className="text-red-400">Chưa xử lý</span>
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-2 flex gap-2 flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setResultImg(imgSrc);
+                                                            let content = h.description;
+                                                            if (hasFeedback) {
+                                                                content += `\n\n**Ý kiến chuyên gia:**\n${h.expert_feedback}`;
+                                                            }
+                                                            setResultText(content);
+                                                            window.scrollTo({ top: 0, behavior: "smooth" });
+                                                        }}
+                                                        className="w-12 text-xs px-2 py-1 rounded border hover:bg-slate-50 text-blue-600 font-medium"
+                                                    >
+                                                        Xem
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteItem(h._id)}
+                                                        className="w-12 text-xs px-2 py-1 rounded border hover:bg-slate-50 text-red-500 font-medium"
+                                                    >
+                                                        Xoá
+                                                    </button>
+
+                                                    {!hasFeedback && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSendExpert(h._id)}
+                                                            disabled={isSent || sendingMailId === h._id}
+                                                            className={`flex items-center gap-1 text-xs px-2 py-1 rounded border font-medium transition-colors
+                                                                ${
+                                                                    isSent
+                                                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200"
+                                                                        : "hover:bg-slate-50 text-purple-600 border-purple-600"
+                                                                }
+                                                            `}
+                                                        >
+                                                            {sendingMailId === h._id ? (
+                                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                            ) : isSent ? (
+                                                                <span className="text-[10px]">Đã gửi</span>
+                                                            ) : (
+                                                                <span>Gửi chuyên gia</span>
+                                                            )}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-2 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className="p-2 rounded-lg border border-gray-300 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <IoChevronBack className="w-4 h-4" />
+                                </button>
+
+                                <span className="text-sm text-slate-600 font-medium px-2">
+                                    Trang {currentPage} / {totalPages}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="p-2 rounded-lg border border-gray-300 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <IoChevronForward className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </Card>

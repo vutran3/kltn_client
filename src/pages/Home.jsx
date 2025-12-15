@@ -9,6 +9,7 @@ import { getProductByDeviceId } from "../redux/thunks/productThunk";
 import { useDispatch, useSelector } from "react-redux";
 import { RULES } from "../constants";
 import { selectDevice } from "../redux/selector";
+import LiveStream from "../components/video/LiveStream";
 
 const POLL_MS = Number(import.meta.env?.POLL_API_MS || 10000);
 
@@ -155,9 +156,9 @@ const Home = () => {
     }, [selectedId]);
 
     return (
-        <div className="flex gap-1 w-full">
+        <div className="flex gap-2 custom-xl:flex-row flex-col">
             {/* Current Metrics */}
-            <div className=" bg-white p-6 rounded-sm shadow-xl flex-1">
+            <div className=" bg-white p-6 rounded-lg shadow-xl flex-1 custom-xl:order-1 order-2">
                 <div className="mb-4">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-200">
                         <span className="text-xs text-gray-600">CÂY ĐANG THEO DÕI</span>
@@ -186,7 +187,7 @@ const Home = () => {
                         unit="%"
                         warning={warn.airHumidity}
                     />
-                    <MetricCard title="ÁNH SÁNG (RAW)" value={last?.light_raw ?? "—"} unit="" />
+                    <MetricCard title="ÁNH SÁNG (LUX)" value={last?.light_raw ?? "—"} unit="" />
                 </div>
 
                 {/* Hàng 2: Đất + pH */}
@@ -237,7 +238,8 @@ const Home = () => {
             </div>
 
             {/* Right Sidebar */}
-            <div className="flex flex-col gap-4 w-[380px]">
+            <div className="flex flex-col gap-2 custom-xl:order-2 order-1">
+                <LiveStream />
                 <Notification notifications={notifications} />
                 <CalendarWeather />
             </div>

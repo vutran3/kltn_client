@@ -264,7 +264,7 @@ export default function FieldsTab() {
                 </SectionCard>
 
                 <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-500 text-nowrap mr-4">
+                    <div className="text-sm text-gray-500 text-nowrap mr-4 font-semibold">
                         {loading ? "Đang tải..." : `Tổng: ${fieldList.length} nơi trồng`}
                     </div>
                     <input

@@ -29,7 +29,7 @@ export default function Sidebar({ collapsed = false, onToggle }) {
         <aside
             className={`${
                 collapsed ? "w-16" : "w-60"
-            } bg-white shadow-sm fixed top-16 left-0 h-full transition-[width] duration-200`}
+            } bg-white shadow-sm fixed top-16 left-0 h-full transition-[width] duration-200 z-[9999]`}
             aria-label="Thanh điều hướng"
         >
             <div className={`flex items-center justify-center p-2 gap-2 border-b border-gray-100`}>
