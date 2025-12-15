@@ -3,6 +3,7 @@ import { getDataApi, putDataApi } from "../utils/fetch";
 import { useSelector } from "react-redux";
 import { selectDevice } from "../redux/selector";
 import { clampNonNegativeNumber, datetimeLocalToMs, fmtTimeMs } from "../utils";
+import LiveStream from "../components/video/LiveStream";
 
 const emptyStatus = {
     device_id: "",
@@ -161,7 +162,7 @@ export default function DeviceControl() {
                 <div className="ml-auto text-sm text-slate-500">Server now: {fmtTimeMs(serverNow)}</div>
             </div>
 
-            <div className="flex gap-3 flex-col">
+            <div className="flex gap-3">
                 <div className="rounded-2xl border bg-white border-gray-300 p-4 sm:p-6 mb-4 flex-1">
                     <h2 className="text-lg font-semibold mb-4">Điều khiển {deviceLabel}</h2>
                     <div className="rounded-xl border border-gray-300 p-3 w-full">
@@ -178,6 +179,7 @@ export default function DeviceControl() {
                             </button>
                         </div>
                     </div>
+                    <LiveStream />
                 </div>
 
                 {/* Scheduling */}

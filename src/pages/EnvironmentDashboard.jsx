@@ -3,12 +3,10 @@ import { useSelector } from "react-redux";
 import { selectDevice } from "../redux/selector";
 import { getDataApi } from "../utils/fetch";
 
-import HistoryTable from "../components/home/HistoryTable";
-import KpiCard from "../components/soil/KpiCard";
-import NpkCard from "../components/soil/NpkCard";
-import AIAdvisor from "../components/soil/AIAdvisor";
+import NpkCard from "../components/env/NpkCard";
+import AIAdvisor from "../components/env/AIAdvisor";
 import { CROP_PRESETS, AI_NOTES_VN, AI_NOTES_GROUP_MODES, AI_NOTES_GROUP_EXCLUSIVE_PAIRS } from "../constants";
-import NotePicker from "../components/soil/NotePicker";
+import NotePicker from "../components/env/NotePicker";
 
 const POLL_MS = Number(import.meta.env?.POLL_API_MS || 10000);
 const HISTORY_LIMIT = 200;
@@ -22,7 +20,7 @@ const fetchLatest = async (deviceId, limit = 50) => {
     return res?.data?.data?.rows ?? [];
 };
 
-export default function SoilEnvironmentDashboard() {
+export default function EnvironmentDashboard() {
     const { selectedId } = useSelector(selectDevice);
 
     const [rows, setRows] = useState([]);

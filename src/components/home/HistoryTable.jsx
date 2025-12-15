@@ -3,7 +3,7 @@ import { getDataApi } from "../../utils/fetch";
 import { fmtTs, toMs } from "../../utils";
 import { useSelector } from "react-redux";
 import { selectDevice } from "../../redux/selector";
-import { handleExportExcel } from "../../utils/handleFile";
+import { handleExportExcel } from "../../utils/file";
 
 const POLL_MS = Number(import.meta.env?.POLL_API_MS || 10000);
 const HISTORY_LIMIT = 100;

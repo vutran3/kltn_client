@@ -14,10 +14,11 @@ import { useEffect } from "react";
 import { getUserInfo } from "./redux/thunks/authThunk";
 import { setIsLoading } from "./redux/slices/authSlice";
 import { getMyDevices } from "./redux/thunks/deviceThunk";
-import SoilEnvironmentDashboard from "./pages/SoilEnvironmentDashboard";
+import EnvironmentDashboard from "./pages/EnvironmentDashboard";
 import "./styles/ai-advice.css";
 import ProductDetailsDashboard from "./pages/DetailsProduct";
 import ProductHistoryManager from "./pages/CareHistoryManager";
+import ExpertReviewPage from "./pages/ExpertReviewPage";
 
 function App() {
     const dispatch = useDispatch();
@@ -49,13 +50,14 @@ function App() {
             <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
             <Routes>
                 <Route path="/products/:productId" element={<ProductDetailsDashboard />} />
+                <Route path="/expert/review/:id" element={<ExpertReviewPage />} />
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route element={isAuthed ? <Layout /> : <SignIn />}>
                     <Route index element={<Home />} />
                     <Route path="/metric-visualizer" element={<MetricVisualizer />} />
                     <Route path="/quality-check" element={<QualityCheck />} />
-                    <Route path="/env-quality-check" element={<SoilEnvironmentDashboard />} />
+                    <Route path="/env-quality-check" element={<EnvironmentDashboard />} />
                     <Route path="/device-controller" element={<DeviceControl />} />
                     <Route path="/produce-manager" element={<ProduceManager />} />
                     <Route path="/product-history" element={<ProductHistoryManager />} />

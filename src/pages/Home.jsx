@@ -239,7 +239,7 @@ const Home = () => {
 
             {/* Right Sidebar */}
             <div className="flex flex-col gap-2 custom-xl:order-2 order-1">
-                <LiveStream />
+                <LiveStream title="Camera theo dõi" />
                 <Notification notifications={notifications} />
                 <CalendarWeather />
             </div>
