@@ -1,9 +1,9 @@
 import { AlertTriangleIcon } from "lucide-react";
 
-function MetricCard({ title, value, unit, warning, large = false }) {
+function MetricCard({ title, value, unit, warning, large = false, containerClassName = "" }) {
     return (
         <div
-            className={`bg-white rounded-lg p-4 shadow-sm border-2 ${
+            className={`bg-white rounded-lg p-4 shadow-sm border-2 ${containerClassName} ${
                 warning ? "border-yellow-400" : "border-gray-200"
             } ${large ? "col-span-2" : ""}`}
         >

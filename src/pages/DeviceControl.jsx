@@ -21,7 +21,6 @@ export default function DeviceControl() {
         pump: { ...emptyStatus }
     });
     const [activeType, setActiveType] = useState("pump");
-    const [quickSeconds, setQuickSeconds] = useState(0);
     const [scheduleAtLocal, setScheduleAtLocal] = useState("");
     const [durationSeconds, setDurationSeconds] = useState(5);
     const currentStatus = status[activeType] || emptyStatus;
@@ -91,16 +90,12 @@ export default function DeviceControl() {
         }
     };
 
-    // BẬT nhanh X giây thiết bị hiện tại
     const turnOnQuick = async () => {
-        const durMs = clampNonNegativeNumber(quickSeconds) * 1000;
         try {
             await putDataApi("/device-control", {
                 device_id: selectedId,
                 type: activeType,
-                is_active: true,
-                schedule_ms: 0,
-                duration_ms: durMs
+                is_active: true
             });
             await fetchStatus();
         } catch (e) {
@@ -166,21 +161,10 @@ export default function DeviceControl() {
                 <div className="ml-auto text-sm text-slate-500">Server now: {fmtTimeMs(serverNow)}</div>
             </div>
 
-            <div className="flex gap-3">
-                {/* Instant Controls */}
+            <div className="flex gap-3 flex-col">
                 <div className="rounded-2xl border bg-white border-gray-300 p-4 sm:p-6 mb-4 flex-1">
                     <h2 className="text-lg font-semibold mb-4">Điều khiển {deviceLabel}</h2>
                     <div className="rounded-xl border border-gray-300 p-3 w-full">
-                        <div className="mb-2">
-                            <label className="block text-sm text-slate-700 mb-1">Bật ngay trong (giây)</label>
-                            <input
-                                type="number"
-                                min={1}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-                                value={quickSeconds}
-                                onChange={(e) => setQuickSeconds(clampNonNegativeNumber(e.target.value, 5))}
-                            />
-                        </div>
                         <div className="flex gap-2">
                             <button
                                 onClick={currentStatus.is_active ? turnOff : turnOnQuick}

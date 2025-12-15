@@ -135,7 +135,7 @@ export default function DevicesTab() {
 
             {/* Toolbar */}
             <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-500 text-nowrap mr-4">
+                <div className="text-sm text-gray-500 text-nowrap mr-4 font-semibold">
                     {loading ? "Đang tải..." : `Tổng: ${items.length} thiết bị`}
                 </div>
                 <input
@@ -171,7 +171,7 @@ export default function DevicesTab() {
                                             (it.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600")
                                         }
                                     >
-                                        {it.is_active ? "Active" : "Inactive"}
+                                        {it.is_active ? "Online" : "Offline"}
                                     </span>
                                 </td>
                                 <td className="px-4 py-3 text-right space-x-2">

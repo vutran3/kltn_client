@@ -112,7 +112,7 @@ function HistoryTable() {
             </div>
 
             {/* Data Table */}
-            <div className="overflow-auto max-h-[600px] w-full border border-gray-300">
+            <div className="overflow-auto max-h-[500px] w-full border border-gray-300 no-scrollbar">
                 <table className="w-full text-sm min-h-52">
                     <thead className="bg-blue-700 text-white sticky top-0">
                         <tr>
