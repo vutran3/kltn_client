@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { postDataApi } from "../../utils/fetch";
 import { fmtTs } from "../../utils";
 import PlanTodoList from "./PlanTodoList";
@@ -9,7 +9,7 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
     const [userDescription, setUserDescription] = useState("");
 
     const [activeTab, setActiveTab] = useState("report");
-    console.log(deviceId);
+
     const payload = useMemo(() => {
         const last = rows?.length ? rows[rows.length - 1] : null;
         const timeRange = rows?.length ? `${fmtTs(rows[0].t)} → ${fmtTs(rows[rows.length - 1].t)}` : "N/A";
@@ -72,6 +72,18 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (!deviceId) return;
+
+        const storageKey = `agri_plan_${deviceId}`;
+        const hasSavedPlan = localStorage.getItem(storageKey);
+
+        if (hasSavedPlan && !answer) {
+            setAnswer(" ");
+            setActiveTab("todo");
+        }
+    }, [deviceId, answer]);
 
     return (
         <div className="rounded-2xl border border-gray-300 p-5 shadow-sm bg-white">
@@ -168,7 +180,7 @@ export default function AIAdvisor({ deviceId, rows, bands, npkTargets, loadingSo
                                         : "text-gray-500 border-transparent hover:bg-gray-50"
                                 }`}
                             >
-                                ✅ Checklist hành động
+                                ✅ Danh sách hành động
                             </button>
                         </div>
 

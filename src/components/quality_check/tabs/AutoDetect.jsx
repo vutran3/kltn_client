@@ -20,7 +20,7 @@ export default function AutoDetectTab() {
     const [limit, setLimit] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
     const [range, setRange] = useState({ from: null, to: null });
-
+    console.log(rows);
     const fetchPage = useCallback(
         async (p = 1, from = null, to = null) => {
             setLoading(true);

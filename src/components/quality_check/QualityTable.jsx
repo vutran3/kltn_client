@@ -3,6 +3,39 @@ import ImagePreview from "./ImagePreview";
 import RowSkeleton from "./RowSkeleton";
 import AnnotatedImage from "./AnnotatedImage";
 
+const VerificationBadge = ({ feedback }) => {
+    const isVerified = feedback && feedback.trim().length > 0;
+
+    if (!isVerified) {
+        return (
+            <div className="mt-2 pt-2 border-t border-slate-100 flex items-center">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 border border-gray-200 cursor-default">
+                    Chưa xác thực
+                </span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="mt-2 pt-2 border-t border-slate-100">
+            <div className="group relative flex items-center w-fit">
+                <span className="cursor-pointer inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors">
+                    <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-500"></span>
+                    Đã xác thực bởi chuyên gia
+                </span>
+
+                <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="font-semibold mb-1 text-emerald-300 border-b border-slate-600 pb-1">
+                        Ý kiến chuyên gia:
+                    </div>
+                    <div className="leading-relaxed text-slate-200">{feedback}</div>
+                    <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800"></div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 function Pagination({ page, totalPages, onPage }) {
     const canPrev = page > 1;
     const canNext = page < totalPages;
@@ -67,7 +100,8 @@ export default function QualityTable({ data = [], loading = false, page = 1, tot
             </div>
 
             <div className="overflow-x-auto">
-                <table className="min-w-[920px] w-full text-left">
+                {/* UPDATE: Tăng min-w để bảng rộng hơn, không bị co ép */}
+                <table className="min-w-[1050px] w-full text-left">
                     <thead className="bg-slate-50 text-slate-700 text-sm">
                         <tr>
                             <th className="px-3 py-3 font-semibold text-center">STT</th>
@@ -75,14 +109,13 @@ export default function QualityTable({ data = [], loading = false, page = 1, tot
                             <th className="px-3 py-3 font-semibold text-center">Thời gian ghi nhận</th>
                             <th className="px-3 py-3 font-semibold text-center">Ảnh sau chuẩn đoán</th>
 
-                            {/* Header cột AI + nhãn/tooltip thân thiện */}
-                            <th className="px-3 py-3 font-semibold text-center">
+                            {/* UPDATE: Tăng width lên 450px */}
+                            <th className="px-3 py-3 font-semibold text-center w-[450px]">
                                 <div className="inline-flex items-center justify-center gap-2">
                                     <span>Hỗ trợ cảnh báo sớm</span>
                                     <span
                                         className="rounded-md bg-yellow-100 px-2 py-0.5 text-[11px] font-medium text-yellow-800"
-                                        title="Nội dung do AI gợi ý để tham khảo nhanh. Vui lòng kiểm tra thực tế và hỏi ý kiến chuyên gia trước khi áp dụng."
-                                        aria-label="Lưu ý về nội dung AI"
+                                        title="Nội dung do AI gợi ý để tham khảo nhanh."
                                     >
                                         AI
                                     </span>
@@ -133,12 +166,9 @@ export default function QualityTable({ data = [], loading = false, page = 1, tot
                                         )}
                                     </td>
                                     <td className="px-3 py-3">
-                                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 leading-relaxed text-slate-700">
-                                            {row.aiMessage}
-                                            <div className="mt-2 text-xs text-yellow-700/90">
-                                                ⚠️ Gợi ý tham khảo. Hãy kiểm tra thực tế & hỏi chuyên gia trước khi áp
-                                                dụng.
-                                            </div>
+                                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 leading-relaxed text-slate-700 flex flex-col h-full">
+                                            <span className="block mb-1">{row.aiMessage}</span>
+                                            <VerificationBadge feedback={row.expert_feedback} />
                                         </div>
                                     </td>
                                 </tr>

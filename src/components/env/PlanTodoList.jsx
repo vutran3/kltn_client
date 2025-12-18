@@ -1,7 +1,6 @@
-// src/components/soil/PlanTodoList.jsx
 import React, { useState, useEffect } from "react";
 import { parsePlanFromHTML } from "../../utils/adviceParser";
-import { Check, RotateCcw, MailCheck } from "lucide-react"; // Hoặc dùng icon svg thường
+import { Check, RotateCcw, MailCheck } from "lucide-react";
 
 export default function PlanTodoList({ adviceHtml, deviceId }) {
     const [phases, setPhases] = useState([]);

@@ -360,7 +360,7 @@ export default function ProductsTab() {
                 </div>
                 {/* Modal hiển thị mã QR */}
                 {showQR && qrProduct && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 h-full">
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] h-full">
                         <div className="bg-white p-6 rounded-2xl w-[360px] shadow-2xl space-y-5 animate-fade-in">
                             <h2 className="text-xl font-semibold text-gray-800 text-center">
                                 Mã QR - {qrProduct.name}
