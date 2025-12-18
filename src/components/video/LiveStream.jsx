@@ -1,87 +1,135 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { TiMediaRecord, TiMediaRecordOutline } from "react-icons/ti";
 
-const LiveStream = ({ title }) => {
+const NO_FRAME_TIMEOUT = 3000;
+
+const LiveStream = ({ title = "Camera" }) => {
     const [imageSrc, setImageSrc] = useState(null);
-    const [isConnected, setIsConnected] = useState(false);
+    const [wsConnected, setWsConnected] = useState(false);
+    const [streamActive, setStreamActive] = useState(false);
+
     const wsRef = useRef(null);
+    const frameTimeoutRef = useRef(null);
+    const reconnectTimeoutRef = useRef(null);
 
-    useEffect(() => {
-        const WS_URL = import.meta.env.VITE_WS_URL || "ws://192.168.0.103:8000/ws/camera-stream";
+    const WS_URL = import.meta.env.VITE_WS_URL || "ws://192.168.0.103:8000/ws/camera-stream";
 
-        const connectWebSocket = () => {
-            wsRef.current = new WebSocket(WS_URL);
-            wsRef.current.binaryType = "blob";
+    const clearFrameTimeout = () => {
+        if (frameTimeoutRef.current) {
+            clearTimeout(frameTimeoutRef.current);
+            frameTimeoutRef.current = null;
+        }
+    };
 
-            wsRef.current.onopen = () => {
-                console.log("Connected to Stream");
-                setIsConnected(true);
-            };
+    const resetFrameTimeout = () => {
+        clearFrameTimeout();
+        frameTimeoutRef.current = setTimeout(() => {
+            console.warn("No frame received → stream inactive");
+            setStreamActive(false);
+            setImageSrc(null);
+        }, NO_FRAME_TIMEOUT);
+    };
 
-            wsRef.current.onclose = () => {
-                console.log("Disconnected from Stream");
-                setIsConnected(false);
-                setTimeout(connectWebSocket, 3000);
-            };
+    const cleanupImage = () => {
+        setImageSrc((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
+    };
 
-            wsRef.current.onerror = (error) => {
-                console.error("WebSocket Error:", error);
-                wsRef.current.close();
-            };
+    const connectWebSocket = () => {
+        if (wsRef.current) return;
 
-            wsRef.current.onmessage = (event) => {
-                const blob = event.data;
-                const newUrl = URL.createObjectURL(blob);
+        const ws = new WebSocket(WS_URL);
+        ws.binaryType = "blob";
+        wsRef.current = ws;
 
-                setImageSrc((prevUrl) => {
-                    if (prevUrl) URL.revokeObjectURL(prevUrl);
-                    return newUrl;
-                });
-            };
+        ws.onopen = () => {
+            console.log("WS connected");
+            setWsConnected(true);
         };
 
+        ws.onmessage = (event) => {
+            const blob = event.data;
+            const url = URL.createObjectURL(blob);
+
+            setWsConnected(true);
+            setStreamActive(true);
+            resetFrameTimeout();
+
+            setImageSrc((prev) => {
+                if (prev) URL.revokeObjectURL(prev);
+                return url;
+            });
+        };
+
+        ws.onerror = (err) => {
+            console.error("WS error:", err);
+            ws.close();
+        };
+
+        ws.onclose = () => {
+            console.log("WS disconnected");
+            setWsConnected(false);
+            setStreamActive(false);
+            cleanupImage();
+            clearFrameTimeout();
+            wsRef.current = null;
+
+            reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000);
+        };
+    };
+
+    useEffect(() => {
         connectWebSocket();
 
         return () => {
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+            clearFrameTimeout();
+
             if (wsRef.current) {
                 wsRef.current.close();
+                wsRef.current = null;
             }
-            if (imageSrc) {
-                URL.revokeObjectURL(imageSrc);
-            }
+            cleanupImage();
         };
     }, []);
 
-    return (
-        <div className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-md w-full  mx-auto">
-            {/* Header & Trạng thái */}
+    const isLive = wsConnected && streamActive;
 
-            <div className="flex justify-between items-center w-full mb-4 flex-wrap">
-                <h2 className="text-xl font-bold text-gray-800">{title || "Camera"}</h2>
+    return (
+        <div className="flex flex-col p-4 bg-white rounded-xl shadow-md w-full">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+
                 <span
-                    className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                        isConnected
+                    className={`px-3 py-1 text-sm font-semibold rounded-full flex items-center gap-1
+                    ${
+                        isLive
                             ? "bg-green-100 text-green-700 border border-green-300"
                             : "bg-red-100 text-red-700 border border-red-300"
                     }`}
                 >
-                    {isConnected ? (
-                        <span className="flex gap-[2px] items-center">
-                            <TiMediaRecord size={20} />
-                            <span>Live</span>
-                        </span>
+                    {isLive ? (
+                        <>
+                            <TiMediaRecord size={18} />
+                            Live
+                        </>
                     ) : (
-                        <span className="flex gap-[2px] items-center">
-                            <TiMediaRecordOutline size={20} />
-                            <span>Offline</span>
-                        </span>
+                        <>
+                            <TiMediaRecordOutline size={18} />
+                            Offline
+                        </>
                     )}
                 </span>
             </div>
 
-            {/* Khung hiển thị Video */}
-            <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center shadow-inner">
-                {isConnected && imageSrc ? (
+            {/* Video */}
+            <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center">
+                {isLive && imageSrc ? (
                     <img src={imageSrc} alt="Live Stream" className="w-full h-full object-contain" />
                 ) : (
                     <div className="text-gray-500 flex flex-col items-center animate-pulse">

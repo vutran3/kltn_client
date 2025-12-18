@@ -205,6 +205,7 @@ export function mapResults(results, page, limit) {
             detectedUrl,
             capturedAt: fmtVN(item?.inspection_date),
             aiMessage,
+            expert_feedback: item?.expert_feedback || "",
             boxes: ai?.boxes || [],
             originalSize: {
                 width: ai?.image_width || item?.image_predetect?.width || 0,

@@ -52,7 +52,6 @@ const ProductHistoryManager = () => {
 
     const [isDragging, setIsDragging] = useState(false);
 
-    // --- CẬP NHẬT STATE BỘ LỌC ---
     const [filterType, setFilterType] = useState("ALL");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -98,6 +97,7 @@ const ProductHistoryManager = () => {
             return matchType;
         });
     }, [histories, filterType]);
+    console.log(selectedFile);
 
     // Gọi lại API khi thay đổi deviceId hoặc filter ngày tháng
     useEffect(() => {
@@ -434,7 +434,7 @@ const ProductHistoryManager = () => {
 
             {/* Modal - Phần này giữ nguyên, không thay đổi */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto no-scrollbar">
                         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 sticky top-0 z-10">
                             <h3 className="font-bold text-lg text-gray-800">

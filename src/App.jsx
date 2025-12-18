@@ -19,6 +19,7 @@ import "./styles/ai-advice.css";
 import ProductDetailsDashboard from "./pages/DetailsProduct";
 import ProductHistoryManager from "./pages/CareHistoryManager";
 import ExpertReviewPage from "./pages/ExpertReviewPage";
+import ExpertAutoReviewPage from "./pages/ExpertAutoReviewPage";
 
 function App() {
     const dispatch = useDispatch();
@@ -51,6 +52,7 @@ function App() {
             <Routes>
                 <Route path="/products/:productId" element={<ProductDetailsDashboard />} />
                 <Route path="/expert/review/:id" element={<ExpertReviewPage />} />
+                <Route path="/expert/auto-review/:id" element={<ExpertAutoReviewPage />} />
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route element={isAuthed ? <Layout /> : <SignIn />}>
