@@ -164,7 +164,7 @@ export default function ManualDetectPanel() {
                     {resultImg && (
                         <div className="flex-1">
                             <div>
-                                <div className="text-sm font-medium text-slate-800 mb-2">Ảnh liên quan</div>
+                                <div className="text-sm font-medium text-slate-800 mb-2">Ảnh được tải lên</div>
                                 <img
                                     src={preview}
                                     alt="annotated"
@@ -173,7 +173,7 @@ export default function ManualDetectPanel() {
                             </div>
 
                             <div className="mt-2">
-                                <div className="text-sm font-medium text-slate-800 mb-2">Ảnh được chụp</div>
+                                <div className="text-sm font-medium text-slate-800 mb-2">Ảnh liên quan</div>
                                 <img
                                     src={resultImg}
                                     alt="annotated"
